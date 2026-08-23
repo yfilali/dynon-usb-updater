@@ -1,0 +1,23 @@
+[package]
+name = "dynon-usb-updater"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.80"
+description = "Prepare USB drives for your avionics"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/yfilali/dynon-usb-updater"
+
+[dev-dependencies]
+zip = { version = "4", default-features = false, features = ["deflate"] }
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.11", features = ["v4_16"] }
+adw = { package = "libadwaita", version = "0.9", features = ["v1_7"] }
+zip = { version = "4", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+regex = "1"
+anyhow = "1"
+
+[profile.release]
+lto = true
+strip = true

@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Dynon USB Updater
-Comment=Copy Dynon aviation and obstacle databases and plates to USB drives
-Exec=/home/yacine/Projects/DynonUSBMapper/run.sh
-Icon=drive-harddisk-usb
-Terminal=false
-Categories=Utility;
-Keywords=Dynon;SkyView;avionics;USB;charts;plates;

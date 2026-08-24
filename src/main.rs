@@ -13,7 +13,7 @@ fn main() -> glib::ExitCode {
     // resolve without needing `meson install` first.
     if let Some(display) = gtk::gdk::Display::default() {
         let theme = gtk::IconTheme::for_display(&display);
-        let source_icons = concat!(env!("CARGO_MANIFEST_DIR"), "/data/icons/hicolor");
+        let source_icons = concat!(env!("CARGO_MANIFEST_DIR"), "/data/icons");
         theme.add_search_path(source_icons);
     }
 

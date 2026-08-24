@@ -23,12 +23,15 @@ fn recognises_real_skyview_drives_when_present() {
     // Both real sticks carry ChartData, root .dup files and a CHARTS key.
     if let Some(d) = drives.iter().find(|d| d.name == "DYNON") {
         assert!(d.recognised(), "DYNON must be recognised");
-        assert_eq!(
-            d.installed_cycle.map(|c| c.label()).as_deref(),
-            Some("2607")
-        );
         assert_eq!(d.entitlement.as_deref(), Some("013712"));
         assert!(d.writable);
+        // Deliberately not asserting a specific cycle: the point of this app is
+        // that the number changes, so pinning it fails the moment the drive is
+        // legitimately updated — which is exactly what happened here.
+        assert!(
+            d.installed_cycle.is_some(),
+            "a SkyView drive carries a cycle"
+        );
     }
 }
 

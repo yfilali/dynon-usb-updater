@@ -36,6 +36,15 @@ kill_app() {
   if [ -n "$pid" ]; then
     kill -9 $pid 2>/dev/null || true
   fi
+  # Wait for the window to actually disappear. Without this the next stage's
+  # `xdotool search` finds the window we just killed and screenshots the
+  # previous state under the next state's name.
+  for _ in $(seq 1 50); do
+    if [ -z "$(DISPLAY="${DISPLAY:-:0}" xdotool search --name "Dynon USB Updater" 2>/dev/null || true)" ]; then
+      return 0
+    fi
+    sleep 0.2
+  done
 }
 
 # --- Fixture data -----------------------------------------------------
@@ -115,6 +124,7 @@ run_app() {
   GSETTINGS_BACKEND=keyfile \
   XDG_CONFIG_HOME="$CFG" \
   XDG_DATA_HOME="$WORK/xdg-data" \
+  XDG_DATA_DIRS="$HOME/.local/share:/usr/local/share:/usr/share" \
   DYNON_TEST_DRIVE_ROOTS="$drive_roots" \
   "$@" \
   "$BINARY" > "$WORK/app.log" 2>&1 &

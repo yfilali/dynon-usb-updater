@@ -243,7 +243,6 @@
                                         <property name="wrap">true</property>
                                         <property name="max-width-chars">52</property>
                                         <style><class name="caption"/></style>
-                                        <accessibility><property name="live">polite</property></accessibility>
                                       </object>
                                     </child>
                                   </object>
@@ -280,7 +279,7 @@
                                   <object class="GtkLabel" id="percent_label">
                                     <property name="label">—</property>
                                     <style><class name="title-1"/><class name="numeric"/></style>
-                                    <accessibility><property name="hidden">true</property></accessibility>
+                                    <accessibility><state name="hidden">true</state></accessibility>
                                   </object>
                                 </child>
                                 <child>
@@ -294,19 +293,18 @@
                                     <property name="wrap">true</property>
                                     <property name="justify">center</property>
                                     <style><class name="title-4"/></style>
-                                    <accessibility><property name="live">polite</property></accessibility>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="detail_label">
                                     <style><class name="body"/><class name="dimmed"/><class name="numeric"/></style>
-                                    <accessibility><property name="hidden">true</property></accessibility>
+                                    <accessibility><state name="hidden">true</state></accessibility>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="eta_label">
                                     <style><class name="caption"/><class name="dimmed"/><class name="numeric"/></style>
-                                    <accessibility><property name="hidden">true</property></accessibility>
+                                    <accessibility><state name="hidden">true</state></accessibility>
                                   </object>
                                 </child>
                                 <child>

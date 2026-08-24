@@ -104,6 +104,9 @@ pub struct Plan {
     pub drives: Vec<Drive>,
     pub aviation: Option<PathBuf>,
     pub obstacle: Option<PathBuf>,
+    /// A combined `.duc` database package, copied to the drive root as-is —
+    /// that is Dynon's documented procedure, not something this app unpacks.
+    pub package: Option<PathBuf>,
     pub archive: Option<Archive>,
     pub strip_wrapper: bool,
     pub verify: bool,
@@ -117,7 +120,7 @@ pub struct Plan {
 impl Plan {
     /// Bytes written to a single drive, which is what the space check needs.
     pub fn bytes_per_drive(&self) -> u64 {
-        let dbs: u64 = [&self.aviation, &self.obstacle]
+        let dbs: u64 = [&self.aviation, &self.obstacle, &self.package]
             .iter()
             .filter_map(|p| p.as_ref())
             .filter_map(|p| fs::metadata(p).ok())
@@ -131,7 +134,7 @@ impl Plan {
     /// rewritten — and each drive corrects its own share downwards once it has
     /// compared what is already there.
     fn estimated_work(&self) -> u64 {
-        let dbs: u64 = [&self.aviation, &self.obstacle]
+        let dbs: u64 = [&self.aviation, &self.obstacle, &self.package]
             .iter()
             .filter_map(|p| p.as_ref())
             .filter_map(|p| fs::metadata(p).ok())
@@ -483,6 +486,50 @@ fn update_drive(
         }
     }
 
+    // 1b. the combined `.duc` database package, copied whole — Dynon's own
+    // documented procedure is to place the package on the drive as-is, not
+    // to unpack it.
+    if let Some(package) = &plan.package {
+        let file_name = package
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
+
+        if plan.replace_old {
+            remove_old_packages(drive, &file_name, ctx);
+        }
+
+        ctx.detail("Copying the database package");
+        let dest = drive.path.join(&file_name);
+        copy_verified(package, &dest, ctx, &mut buffer)?;
+        ctx.log(
+            Severity::Success,
+            format!("{}: copied {file_name}", drive.name),
+        );
+
+        if plan.verify {
+            ctx.send(Event::DriveState {
+                drive: drive.name.clone(),
+                state: DriveState::CheckingCopies,
+            });
+            ctx.detail("Comparing checksums");
+            let want = digest(package, ctx, &mut buffer)?;
+            let got = digest(&dest, ctx, &mut buffer)?;
+            ctx.bump(fs::metadata(package).map(|m| m.len()).unwrap_or(0));
+            if want != got {
+                let _ = fs::remove_file(&dest);
+                return Err(StepError::Failed(format!(
+                    "the copy of {file_name} did not match the original. Nothing was left half-written"
+                )));
+            }
+            ctx.log(
+                Severity::Success,
+                format!("{}: checksum matches", drive.name),
+            );
+        }
+    }
+
     // 2. plates — a sync, not a wipe.
     //
     // The old approach erased ChartData/Plates and unpacked the whole archive.
@@ -686,6 +733,27 @@ fn remove_old_databases(drive: &Drive, kind: scan::DupKind, keep: &str, ctx: &Ct
             continue;
         }
         if scan::classify(&name) != kind {
+            continue;
+        }
+        if fs::remove_file(entry.path()).is_ok() {
+            ctx.log(Severity::Info, format!("{}: removed {name}", drive.name));
+        }
+    }
+}
+
+/// Retire `.duc` database packages the new one supersedes. Only a package
+/// that itself parses as a database package (via `scan::read_package`) is
+/// touched — an unrelated `.duc`, such as a firmware update, never is.
+fn remove_old_packages(drive: &Drive, keep: &str, ctx: &Ctx) {
+    let Ok(entries) = fs::read_dir(&drive.path) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !name.to_ascii_lowercase().ends_with(".duc") || name == keep {
+            continue;
+        }
+        if scan::read_package(&entry.path()).is_none() {
             continue;
         }
         if fs::remove_file(entry.path()).is_ok() {

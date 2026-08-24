@@ -1,4 +1,57 @@
 use dynon_usb_updater::drive;
+use std::fs::{self, File};
+use std::io::Write;
+
+fn tmpdir(name: &str) -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join(format!("dynon-drive-{name}"));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+fn write_duc(path: &std::path::Path, names: &[&str]) {
+    let mut zip = zip::ZipWriter::new(File::create(path).unwrap());
+    let opts: zip::write::FileOptions<()> = zip::write::FileOptions::default();
+    for name in names {
+        zip.start_file(*name, opts).unwrap();
+        zip.write_all(b"payload").unwrap();
+    }
+    zip.finish().unwrap();
+}
+
+/// A drive updated from Dynon's own combined `.duc` package (no root `.dup`
+/// files at all) must still report its installed cycle correctly.
+#[test]
+fn installed_cycle_is_read_from_a_duc_package_when_no_dup_files_are_present() {
+    let root = tmpdir("duc-cycle");
+    fs::create_dir_all(root.join("ChartData")).unwrap();
+    write_duc(
+        &root.join("FAA_av2608_ob2604.duc"),
+        &["av_data_FAA_2608.dup", "ob_data_FAA_2604.dup"],
+    );
+
+    let (score, cycle, _entitlement) = drive::recognise(&root, "DYNON");
+    assert!(
+        score >= 2,
+        "a ChartData folder plus a .duc should recognise"
+    );
+    assert_eq!(
+        cycle.map(|c| c.label()),
+        Some("2608".to_string()),
+        "the installed cycle must come from the package, not a root .dup"
+    );
+}
+
+/// A firmware `.duc` must never be mistaken for a database cycle.
+#[test]
+fn a_firmware_duc_does_not_produce_a_bogus_installed_cycle() {
+    let root = tmpdir("duc-firmware-cycle");
+    fs::create_dir_all(root.join("ChartData")).unwrap();
+    write_duc(&root.join("SkyView_16.4.4.duc"), &["firmware.bin"]);
+
+    let (_, cycle, _) = drive::recognise(&root, "DYNON");
+    assert_eq!(cycle, None, "firmware packages carry no database cycle");
+}
 
 #[test]
 fn recognises_real_skyview_drives_when_present() {

@@ -88,6 +88,7 @@ fn plan(env: &Env) -> job::Plan {
         drives: vec![env.plan_drive.clone()],
         aviation: Some(env.aviation.clone()),
         obstacle: Some(env.obstacle.clone()),
+        package: None,
         archive: Some(env.archive.clone()),
         strip_wrapper: false,
         verify: true,
@@ -362,6 +363,121 @@ fn drives_are_updated_concurrently_not_one_after_another() {
     );
 }
 
+fn write_duc(path: &Path, names: &[&str]) {
+    let mut zip = zip::ZipWriter::new(File::create(path).unwrap());
+    let opts: zip::write::FileOptions<()> = zip::write::FileOptions::default();
+    for name in names {
+        zip.start_file(*name, opts).unwrap();
+        zip.write_all(&vec![b'd'; 2048]).unwrap();
+    }
+    zip.finish().unwrap();
+}
+
+#[test]
+fn a_duc_package_is_copied_whole_and_verified() {
+    let base = fixture("duc-copy");
+    let src = base.join("downloads");
+    fs::create_dir_all(&src).unwrap();
+    let package = src.join("FAA_av2608_ob2604.duc");
+    write_duc(&package, &["av_data_FAA_2608.dup", "ob_data_FAA_2604.dup"]);
+
+    let root = base.join("FAKEUSB");
+    fs::create_dir_all(&root).unwrap();
+
+    let plan = job::Plan {
+        drives: vec![drive::folder_target(&root)],
+        aviation: None,
+        obstacle: None,
+        package: Some(package.clone()),
+        archive: None,
+        strip_wrapper: false,
+        verify: true,
+        replace_old: true,
+        cycle: scan::read_package(&package).unwrap().aviation,
+        full_rebuild: false,
+    };
+
+    let (tx, rx) = mpsc::channel();
+    job::run(plan, tx, job::Cancel::new());
+    let outcomes: Vec<_> = rx
+        .iter()
+        .filter_map(|e| match e {
+            job::Event::Finished(o) => Some(o),
+            _ => None,
+        })
+        .next()
+        .unwrap();
+    assert_eq!(outcomes[0].result, job::Outcome::Updated);
+
+    // The package landed on the drive as-is — not unpacked.
+    let dest = root.join("FAA_av2608_ob2604.duc");
+    assert!(dest.is_file());
+    assert_eq!(fs::read(&dest).unwrap(), fs::read(&package).unwrap());
+    assert!(
+        scan::read_package(&dest).is_some(),
+        "the copy must still parse as the same database package"
+    );
+    // No .part file survives a successful copy.
+    assert!(fs::read_dir(&root)
+        .unwrap()
+        .flatten()
+        .all(|e| !e.file_name().to_string_lossy().ends_with(".part")));
+}
+
+#[test]
+fn replacing_older_packages_retires_only_the_same_family() {
+    let base = fixture("duc-retire");
+    let src = base.join("downloads");
+    fs::create_dir_all(&src).unwrap();
+    let package = src.join("FAA_av2608_ob2604.duc");
+    write_duc(&package, &["av_data_FAA_2608.dup", "ob_data_FAA_2604.dup"]);
+
+    let root = base.join("FAKEUSB");
+    fs::create_dir_all(&root).unwrap();
+    // An older database package of the same family: must be retired.
+    write_duc(
+        &root.join("FAA_av2607_ob2604.duc"),
+        &["av_data_FAA_2607.dup", "ob_data_FAA_2604.dup"],
+    );
+    // A firmware package: must never be touched, even though it is a .duc.
+    write_duc(&root.join("SkyView_16.4.4.duc"), &["firmware.bin"]);
+
+    let plan = job::Plan {
+        drives: vec![drive::folder_target(&root)],
+        aviation: None,
+        obstacle: None,
+        package: Some(package.clone()),
+        archive: None,
+        strip_wrapper: false,
+        verify: false,
+        replace_old: true,
+        cycle: scan::read_package(&package).unwrap().aviation,
+        full_rebuild: false,
+    };
+
+    let (tx, rx) = mpsc::channel();
+    job::run(plan, tx, job::Cancel::new());
+    let outcomes: Vec<_> = rx
+        .iter()
+        .filter_map(|e| match e {
+            job::Event::Finished(o) => Some(o),
+            _ => None,
+        })
+        .next()
+        .unwrap();
+    assert_eq!(outcomes[0].result, job::Outcome::Updated);
+
+    assert!(root.join("FAA_av2608_ob2604.duc").exists());
+    assert!(
+        !root.join("FAA_av2607_ob2604.duc").exists(),
+        "the superseded database package must be retired"
+    );
+    assert!(
+        root.join("SkyView_16.4.4.duc").exists(),
+        "an unrelated .duc (firmware) must never be deleted"
+    );
+}
+
 /// Not run by default: builds a 20,000-plate archive to show what the sync
 /// saves on a realistic cycle. Run with `cargo test --release -- --ignored --nocapture`.
 #[test]
@@ -402,6 +518,7 @@ fn sync_scale_benchmark() {
         drives: vec![drive::folder_target(&root)],
         aviation: Some(aviation.clone()),
         obstacle: Some(obstacle.clone()),
+        package: None,
         archive: Some(archive.clone()),
         strip_wrapper: false,
         verify: true,

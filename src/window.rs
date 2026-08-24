@@ -26,6 +26,13 @@ pub(crate) struct Sources {
     skip_aviation: bool,
     skip_archive: bool,
     skip_obstacle: bool,
+    /// True when this folder is offering a combined `.duc` database package
+    /// instead of separate `.dup` files (Dynon's own downloads, as opposed to
+    /// Airmate's). Decided once per folder load: no root `.dup` files at all
+    /// means the folder is in "package" form.
+    package_mode: bool,
+    package: Option<scan::Package>,
+    skip_package: bool,
     archive: Option<Archive>,
     archive_error: Option<String>,
     /// The file the failed read attempt was for, so the banner can name it.
@@ -49,11 +56,20 @@ impl Sources {
                 .and_then(|p| p.file_name())
                 .and_then(|n| scan::parse_cycle(&n.to_string_lossy()))
         };
-        from(&self.aviation).or_else(|| from(&self.obstacle))
+        from(&self.aviation)
+            .or_else(|| from(&self.obstacle))
+            .or_else(|| {
+                self.package
+                    .as_ref()
+                    .and_then(|p| p.aviation.or(p.obstacle))
+            })
     }
 
     fn anything_to_copy(&self) -> bool {
-        self.aviation.is_some() || self.obstacle.is_some() || self.archive.is_some()
+        self.aviation.is_some()
+            || self.obstacle.is_some()
+            || self.package.is_some()
+            || self.archive.is_some()
     }
 }
 
@@ -130,6 +146,12 @@ mod imp {
         pub obstacle_cycle: TemplateChild<gtk::Label>,
         #[template_child]
         pub obstacle_menu: TemplateChild<gtk::MenuButton>,
+        #[template_child]
+        pub package_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub package_cycle: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub package_menu: TemplateChild<gtk::MenuButton>,
         #[template_child]
         pub plates_row: TemplateChild<adw::ActionRow>,
         #[template_child]
@@ -287,6 +309,8 @@ impl DynonWindow {
             .set_menu_model(Some(&database_menu("aviation")));
         imp.obstacle_menu
             .set_menu_model(Some(&database_menu("obstacle")));
+        imp.package_menu
+            .set_menu_model(Some(&database_menu("package")));
         imp.plates_menu.set_menu_model(Some(&plates_menu(false)));
 
         imp.update_button
@@ -410,6 +434,13 @@ impl DynonWindow {
             ));
             self.add_action(&action);
         }
+        let skip_package = gio::SimpleAction::new("skip-package", None);
+        skip_package.connect_activate(clone!(
+            #[weak(rename_to = win)]
+            self,
+            move |_, _| win.skip_package()
+        ));
+        self.add_action(&skip_package);
         let clear = gio::SimpleAction::new("clear-archive", None);
         clear.connect_activate(clone!(
             #[weak(rename_to = win)]
@@ -555,6 +586,15 @@ impl DynonWindow {
             sources.obstacle = scan::newest(&dups, DupKind::Obstacle).map(|d| d.path.clone());
             sources.skip_aviation = false;
             sources.skip_obstacle = false;
+            sources.skip_package = false;
+            // No root .dup files at all means this is a Dynon-style download:
+            // a combined .duc package rather than separate Airmate files.
+            sources.package_mode = sources.aviation.is_none() && sources.obstacle.is_none();
+            sources.package = if sources.package_mode {
+                scan::scan_packages(folder).into_iter().next()
+            } else {
+                None
+            };
             sources.dups = dups;
             sources.folder = Some(folder.to_path_buf());
         }
@@ -715,6 +755,15 @@ impl DynonWindow {
         self.refresh_sources();
     }
 
+    fn skip_package(&self) {
+        {
+            let mut sources = self.imp().sources.borrow_mut();
+            sources.skip_package = true;
+            sources.package = None;
+        }
+        self.refresh_sources();
+    }
+
     fn refresh_sources(&self) {
         let imp = self.imp();
         let sources = imp.sources.borrow();
@@ -723,6 +772,41 @@ impl DynonWindow {
             .as_ref()
             .map(|f| abbreviate(f))
             .unwrap_or_else(|| "no folder".into());
+
+        imp.package_row.set_visible(sources.package_mode);
+        imp.aviation_row.set_visible(!sources.package_mode);
+        imp.obstacle_row.set_visible(!sources.package_mode);
+
+        if sources.package_mode {
+            imp.package_menu
+                .set_menu_model(Some(&database_menu("package")));
+            imp.package_cycle.remove_css_class("dimmed");
+            imp.package_cycle.add_css_class("accent");
+            match (&sources.package, sources.skip_package) {
+                (Some(pkg), _) => {
+                    imp.package_cycle.set_text(&pkg.version());
+                    imp.package_row.set_subtitle(&format!(
+                        "{} · {}",
+                        pkg.name(),
+                        job::size(pkg.size)
+                    ));
+                }
+                (None, true) => {
+                    imp.package_cycle.remove_css_class("accent");
+                    imp.package_cycle.add_css_class("dimmed");
+                    imp.package_cycle.set_text("Not copying");
+                    imp.package_row
+                        .set_subtitle("This database package will be left as it is on the drive");
+                }
+                (None, false) => {
+                    imp.package_cycle.remove_css_class("accent");
+                    imp.package_cycle.add_css_class("dimmed");
+                    imp.package_cycle.set_text("Not found");
+                    imp.package_row
+                        .set_subtitle(&format!("No database package in {folder_name}"));
+                }
+            }
+        }
 
         for (kind, row, badge, chosen, skipped) in [
             (
@@ -1461,7 +1545,8 @@ impl DynonWindow {
             .filter_map(|p| std::fs::metadata(p).ok())
             .map(|m| m.len())
             .sum();
-        dbs + sources.archive.as_ref().map(|a| a.total_bytes).unwrap_or(0)
+        let package = sources.package.as_ref().map(|p| p.size).unwrap_or(0);
+        dbs + package + sources.archive.as_ref().map(|a| a.total_bytes).unwrap_or(0)
     }
 }
 
@@ -1475,7 +1560,7 @@ impl DynonWindow {
         let selected = self.selected();
         let needed = self.bytes_needed();
 
-        let (folder_missing, folder_label, dups_empty, nothing_to_copy, loading) = {
+        let (folder_missing, folder_label, no_databases_found, nothing_to_copy, loading) = {
             let sources = imp.sources.borrow();
             let folder_missing = sources.folder.as_ref().map(|f| !f.is_dir()).unwrap_or(true);
             let folder_label = sources
@@ -1483,10 +1568,18 @@ impl DynonWindow {
                 .as_ref()
                 .map(|f| abbreviate(f))
                 .unwrap_or_else(|| "the folder".into());
+            // In package mode, no databases at all means no package was
+            // found (and none was deliberately skipped) — the .dup list is
+            // expected to be empty there, so it is not the right signal.
+            let no_databases_found = if sources.package_mode {
+                sources.package.is_none() && !sources.skip_package
+            } else {
+                sources.dups.is_empty()
+            };
             (
                 folder_missing,
                 folder_label,
-                sources.dups.is_empty(),
+                no_databases_found,
                 !sources.anything_to_copy(),
                 sources.archive_loading.clone(),
             )
@@ -1500,7 +1593,7 @@ impl DynonWindow {
 
         let reason: Option<String> = if folder_missing {
             Some("Choose a folder that contains this cycle's files".into())
-        } else if dups_empty {
+        } else if no_databases_found {
             Some(format!(
                 "No aviation or obstacle database found in {folder_label}"
             ))
@@ -1667,7 +1760,11 @@ impl DynonWindow {
         // E2: no databases in folder.
         if picked.is_none()
             && sources.folder.as_ref().map(|f| f.is_dir()).unwrap_or(false)
-            && sources.dups.is_empty()
+            && if sources.package_mode {
+                sources.package.is_none() && !sources.skip_package
+            } else {
+                sources.dups.is_empty()
+            }
         {
             picked = Some((
                 format!("No databases found in {folder_label}."),
@@ -1699,8 +1796,10 @@ impl DynonWindow {
                 }
             }
         }
-        // E3: only one database kind found.
-        if picked.is_none() {
+        // E3: only one database kind found. Not applicable in package mode:
+        // a combined package's two cycles are shown together, not as a
+        // "missing kind" the user needs to fix.
+        if picked.is_none() && !sources.package_mode {
             let has_av = sources.dups.iter().any(|d| d.kind == DupKind::Aviation);
             let has_ob = sources.dups.iter().any(|d| d.kind == DupKind::Obstacle);
             if has_av != has_ob {
@@ -1887,12 +1986,15 @@ impl DynonWindow {
             )
         };
         let drive_list = drive_list_text(&selected);
-        let db_count = {
+        let (db_count, has_package) = {
             let sources = imp.sources.borrow();
-            [sources.aviation.is_some(), sources.obstacle.is_some()]
-                .iter()
-                .filter(|b| **b)
-                .count()
+            (
+                [sources.aviation.is_some(), sources.obstacle.is_some()]
+                    .iter()
+                    .filter(|b| **b)
+                    .count(),
+                sources.package.is_some(),
+            )
         };
 
         let heading = if has_archive {
@@ -1912,6 +2014,8 @@ impl DynonWindow {
                 "The plates folder on {drive_list} will be erased and rebuilt from {archive_name}. \
                  This takes about {duration} and cannot be undone."
             )
+        } else if has_package {
+            format!("The database package on {drive_list} will be replaced. Plates are left as they are.")
         } else {
             format!("The aviation and obstacle databases on {drive_list} will be replaced. Plates are left as they are.")
         };
@@ -1925,6 +2029,8 @@ impl DynonWindow {
                     "Copy {db_count} database{}",
                     if db_count == 1 { "" } else { "s" }
                 ));
+            } else if has_package {
+                parts.push("Copy the database package".to_string());
             }
             if has_archive {
                 let existing = drive.reclaimable.map(|(_, n)| n).unwrap_or(0);
@@ -2022,6 +2128,7 @@ impl DynonWindow {
             drives,
             aviation: sources.aviation.clone(),
             obstacle: sources.obstacle.clone(),
+            package: sources.package.as_ref().map(|p| p.path.clone()),
             archive: sources.archive.clone(),
             strip_wrapper: sources.strip_wrapper,
             verify: self.preference("verify-copies", true),
@@ -2967,6 +3074,14 @@ impl DynonWindow {
                 .unwrap_or_default();
             out.push_str(&format!("Obstacle:  {name} (Cycle {cycle}, {size})\n"));
         }
+        if let Some(package) = &sources.package {
+            out.push_str(&format!(
+                "Package:   {} ({}, {})\n",
+                package.name(),
+                package.version(),
+                job::size(package.size)
+            ));
+        }
         if let Some(archive) = &plan.archive {
             out.push_str(&format!(
                 "Plates:    {} ({} files, {})\n",
@@ -3663,6 +3778,7 @@ impl DynonWindow {
             match kind {
                 "aviation" => sources.aviation.clone(),
                 "obstacle" => sources.obstacle.clone(),
+                "package" => sources.package.as_ref().map(|p| p.path.clone()),
                 "plates" => sources.archive.as_ref().map(|a| a.path.clone()),
                 _ => None,
             }

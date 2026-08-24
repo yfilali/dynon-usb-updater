@@ -94,6 +94,17 @@ pub fn recognise(root: &Path, label: &str) -> (u8, Option<Cycle>, Option<String>
                 }
             } else if lower.ends_with(".duc") {
                 has_duc = true;
+                // A `.duc` may be a database package (Dynon's own combined
+                // download) rather than a firmware update — when it is, its
+                // aviation cycle counts toward the drive's installed cycle
+                // exactly like a root `.dup` would, so a drive updated from a
+                // package still reports correctly. Firmware `.duc` files parse
+                // to `None` here and are silently ignored.
+                if let Some(package) = scan::read_package(&entry.path()) {
+                    if package.aviation > cycle {
+                        cycle = package.aviation;
+                    }
+                }
             } else if let Some(id) = scan::parse_key_entitlement(&name) {
                 has_key = true;
                 entitlement = Some(id);

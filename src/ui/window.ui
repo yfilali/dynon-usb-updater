@@ -82,6 +82,27 @@
                                       </object>
                                     </property>
                                     <child>
+                                      <object class="AdwActionRow" id="package_row">
+                                        <property name="title" translatable="yes">Database Package</property>
+                                        <property name="subtitle-lines">1</property>
+                                        <property name="visible">false</property>
+                                        <child type="suffix">
+                                          <object class="GtkLabel" id="package_cycle">
+                                            <style><class name="heading"/><class name="accent"/></style>
+                                          </object>
+                                        </child>
+                                        <child type="suffix">
+                                          <object class="GtkMenuButton" id="package_menu">
+                                            <property name="icon-name">view-more-symbolic</property>
+                                            <property name="valign">center</property>
+                                            <property name="tooltip-text" translatable="yes">More options</property>
+                                            <style><class name="flat"/></style>
+                                            <accessibility><property name="label" translatable="yes">More options for the database package</property></accessibility>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
                                       <object class="AdwActionRow" id="aviation_row">
                                         <property name="title" translatable="yes">Aviation Database</property>
                                         <property name="subtitle-lines">1</property>

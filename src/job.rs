@@ -230,12 +230,6 @@ impl Ctx {
             message: message.into(),
         });
     }
-    fn step(&self, step: impl Into<String>, detail: impl Into<String>) {
-        self.send(Event::Step {
-            step: step.into(),
-            detail: detail.into(),
-        });
-    }
     fn bump(&mut self, units: u64) {
         let done = self.shared.done.fetch_add(units, Ordering::Relaxed) + units;
         if self.last_sent.elapsed() >= Duration::from_millis(100) {

@@ -22,6 +22,16 @@ fn recognises_real_skyview_drives_when_present() {
     }
     // Both real sticks carry ChartData, root .dup files and a CHARTS key.
     if let Some(d) = drives.iter().find(|d| d.name == "DYNON") {
+        // The mount can be listed while its contents are unreadable — that is
+        // exactly the case under scripts/no-drives.sh, where the drives are
+        // masked on purpose. Nothing to assert about a drive we cannot read.
+        let readable = std::fs::read_dir(&d.path)
+            .map(|mut entries| entries.next().is_some())
+            .unwrap_or(false);
+        if !readable {
+            eprintln!("skipping: {} is mounted but not readable here", d.name);
+            return;
+        }
         assert!(d.recognised(), "DYNON must be recognised");
         assert_eq!(d.entitlement.as_deref(), Some("013712"));
         assert!(d.writable);

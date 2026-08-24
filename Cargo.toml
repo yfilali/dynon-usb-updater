@@ -21,6 +21,7 @@ zip = { version = "4", default-features = false, features = ["deflate"] }
 sha2 = "0.10"
 regex = "1"
 anyhow = "1"
+crc32fast = "1.5.1"
 
 [profile.release]
 lto = true

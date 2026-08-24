@@ -24,6 +24,7 @@ pub(crate) struct Sources {
     aviation: Option<PathBuf>,
     obstacle: Option<PathBuf>,
     skip_aviation: bool,
+    skip_archive: bool,
     skip_obstacle: bool,
     archive: Option<Archive>,
     archive_error: Option<String>,
@@ -80,6 +81,7 @@ pub(crate) struct Run {
     samples: Vec<(Instant, u64)>,
     last_eta: Option<Duration>,
     rows: Vec<(String, RunRow)>,
+    drive_states: std::collections::HashMap<String, DriveState>,
     inhibit: u32,
     current_state: DriveState,
     last_announce: Instant,
@@ -557,6 +559,27 @@ impl DynonWindow {
             sources.folder = Some(folder.to_path_buf());
         }
         self.save("source-folder", folder.to_string_lossy().to_string());
+
+        // Pick the cycle's plates archive out of the folder too — it arrives in
+        // the same download as the databases, so making the user hunt for it is
+        // busywork. An explicit "Do Not Replace Plates" is respected, and so is
+        // an archive the user chose from this folder themselves.
+        let autopick = {
+            let sources = self.imp().sources.borrow();
+            !sources.skip_archive
+                && sources
+                    .archive
+                    .as_ref()
+                    .map(|a| a.path.parent() != Some(folder))
+                    .unwrap_or(true)
+        };
+        if autopick {
+            let cycle = self.imp().sources.borrow().cycle();
+            let candidates = scan::rank_plate_archives(folder, cycle);
+            if let Some(best) = candidates.first() {
+                self.load_archive(best);
+            }
+        }
         imp.source_path.set_text(&abbreviate(folder));
         imp.source_path
             .set_tooltip_text(Some(&folder.to_string_lossy()));
@@ -603,6 +626,7 @@ impl DynonWindow {
     /// Reading a 23,000-entry central directory belongs off the main loop.
     fn load_archive(&self, path: &std::path::Path) {
         let imp = self.imp();
+        imp.sources.borrow_mut().skip_archive = false;
         imp.plates_spinner.set_visible(true);
         imp.plates_cycle.set_text("");
         let file_name = path
@@ -667,6 +691,7 @@ impl DynonWindow {
             let mut sources = self.imp().sources.borrow_mut();
             sources.archive = None;
             sources.archive_error = None;
+            sources.skip_archive = true;
         }
         self.save("plates-archive", String::new());
         self.toast("Plates will not be replaced");
@@ -2002,6 +2027,7 @@ impl DynonWindow {
             verify: self.preference("verify-copies", true),
             replace_old: self.preference("replace-old-databases", true),
             cycle: sources.cycle(),
+            full_rebuild: self.preference("full-plate-rebuild", false),
         };
         drop(sources);
         self.start_job(plan);
@@ -2063,6 +2089,7 @@ impl DynonWindow {
             samples: Vec::new(),
             last_eta: None,
             rows,
+            drive_states: std::collections::HashMap::new(),
             inhibit: inhibit_id,
             current_state: DriveState::Waiting,
             last_announce: Instant::now(),
@@ -2144,6 +2171,16 @@ impl DynonWindow {
             return glib::ControlFlow::Break;
         }
         glib::ControlFlow::Continue
+    }
+
+    /// Show a drive's own progress text on its row, since with concurrent
+    /// drives the headline cannot speak for all of them.
+    fn set_drive_detail(&self, drive: &str, detail: &str) {
+        if let Some(run) = self.imp().run.borrow().as_ref() {
+            if let Some((_, row)) = run.rows.iter().find(|(name, _)| name == drive) {
+                row.row.set_subtitle(detail);
+            }
+        }
     }
 
     fn handle_job_event(&self, event: Event) {
@@ -2228,12 +2265,37 @@ impl DynonWindow {
                     ));
                 }
             }
+            Event::DriveDetail { drive, detail } => {
+                self.set_drive_detail(&drive, &detail);
+            }
             Event::DriveState { drive, state } => {
+                let mut states: Vec<(String, DriveState)> = Vec::new();
                 if let Some(run) = imp.run.borrow_mut().as_mut() {
                     run.current_state = state;
                     if let Some((_, row)) = run.rows.iter().find(|(n, _)| n == &drive) {
                         apply_drive_state(row, state, None);
                     }
+                    run.drive_states.insert(drive.clone(), state);
+                    states = run
+                        .rows
+                        .iter()
+                        .map(|(name, _)| {
+                            (
+                                name.clone(),
+                                run.drive_states
+                                    .get(name)
+                                    .copied()
+                                    .unwrap_or(DriveState::Waiting),
+                            )
+                        })
+                        .collect();
+                }
+                // With drives running concurrently no single drive owns the
+                // headline, so describe the phase the job as a whole is in —
+                // the least advanced one still doing work.
+                if let Some(step) = headline_step(&states) {
+                    imp.step_label.set_label(&step);
+                    self.announce_progress(&step);
                 }
             }
             Event::Log { severity, message } => {
@@ -2403,13 +2465,47 @@ fn eta_vocabulary(seconds: f64) -> String {
     }
 }
 
+/// The phase to show above the per-drive rows: the least advanced drive still
+/// working, named after the drives actually in that phase.
+fn headline_step(states: &[(String, DriveState)]) -> Option<String> {
+    const ORDER: [(DriveState, &str); 6] = [
+        (DriveState::CopyingDatabases, "Copying databases"),
+        (DriveState::CheckingCopies, "Checking copies"),
+        (DriveState::ComparingPlates, "Checking plates"),
+        (DriveState::ErasingPlates, "Removing old plates"),
+        (DriveState::ExtractingPlates, "Writing plates"),
+        (DriveState::Finishing, "Finishing"),
+    ];
+    for (phase, text) in ORDER {
+        let names: Vec<&str> = states
+            .iter()
+            .filter(|(_, s)| *s == phase)
+            .map(|(n, _)| n.as_str())
+            .collect();
+        if !names.is_empty() {
+            return Some(format!("{text} on {}", join_names(&names)));
+        }
+    }
+    None
+}
+
+fn join_names(names: &[&str]) -> String {
+    match names {
+        [] => String::new(),
+        [one] => (*one).to_string(),
+        [a, b] => format!("{a} and {b}"),
+        _ => format!("{} drives", names.len()),
+    }
+}
+
 fn drive_state_text(state: DriveState) -> &'static str {
     match state {
         DriveState::Waiting => "Waiting",
         DriveState::CopyingDatabases => "Copying databases",
         DriveState::CheckingCopies => "Checking copies",
-        DriveState::ErasingPlates => "Erasing plates",
-        DriveState::ExtractingPlates => "Extracting plates",
+        DriveState::ComparingPlates => "Checking plates",
+        DriveState::ErasingPlates => "Removing old plates",
+        DriveState::ExtractingPlates => "Writing plates",
         DriveState::Finishing => "Finishing",
         DriveState::Done => "Done",
         DriveState::Failed => "Failed",
@@ -3188,6 +3284,22 @@ impl DynonWindow {
             move |row| win.save("eject-when-finished", row.is_active())
         ));
         updating.add(&verify);
+
+        let rebuild = adw::SwitchRow::builder()
+            .title("Rewrite Every Plate")
+            .subtitle(
+                "Write all plates instead of only the ones that changed. Much slower — use it if you suspect a drive holds corrupt files.",
+            )
+            .active(self.preference("full-plate-rebuild", false))
+            .build();
+        rebuild.connect_active_notify(clone!(
+            #[weak(rename_to = win)]
+            self,
+            move |row| {
+                win.save("full-plate-rebuild", row.is_active());
+            }
+        ));
+        updating.add(&rebuild);
         updating.add(&replace_old);
         updating.add(&eject);
         page.add(&updating);

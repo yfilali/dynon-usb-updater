@@ -152,6 +152,7 @@ name = "dynon-usb-updater"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "crc32fast",
  "gtk4",
  "libadwaita",
  "regex",

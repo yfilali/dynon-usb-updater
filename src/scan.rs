@@ -183,6 +183,9 @@ pub struct Member {
     /// Destination path relative to `ChartData/Plates` on the drive.
     pub dest: PathBuf,
     pub size: u64,
+    /// CRC-32 recorded in the archive, used to tell an unchanged plate from a
+    /// revised one without rewriting it.
+    pub crc32: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -219,6 +222,7 @@ impl Archive {
                     index: m.index,
                     dest: parts.as_path().to_path_buf(),
                     size: m.size,
+                    crc32: m.crc32,
                 }
             })
             .collect()
@@ -234,7 +238,7 @@ pub fn read_archive(path: &Path) -> Result<Archive> {
     let file = fs::File::open(path).with_context(|| format!("opening {}", path.display()))?;
     let mut zip = zip::ZipArchive::new(file).context("this file is not a readable zip archive")?;
 
-    let mut raw: Vec<(usize, Vec<String>, u64)> = Vec::new();
+    let mut raw: Vec<(usize, Vec<String>, u64, u32)> = Vec::new();
     let mut junk_skipped = 0usize;
 
     for index in 0..zip.len() {
@@ -261,7 +265,7 @@ pub fn read_archive(path: &Path) -> Result<Archive> {
             junk_skipped += 1;
             continue;
         }
-        raw.push((index, parts, entry.size()));
+        raw.push((index, parts, entry.size(), entry.crc32()));
     }
 
     if raw.is_empty() {
@@ -273,8 +277,8 @@ pub fn read_archive(path: &Path) -> Result<Archive> {
     loop {
         let mut heads = raw
             .iter()
-            .filter(|(_, p, _)| p.len() > 1)
-            .map(|(_, p, _)| p[0].as_str());
+            .filter(|(_, p, _, _)| p.len() > 1)
+            .map(|(_, p, _, _)| p[0].as_str());
         let Some(first) = heads.next() else { break };
         let head = first.to_string();
         if !heads.all(|h| h == head) {
@@ -284,10 +288,10 @@ pub fn read_archive(path: &Path) -> Result<Archive> {
         if lower != "chartdata" && lower != "plates" {
             break;
         }
-        if raw.iter().any(|(_, p, _)| p.len() == 1) {
+        if raw.iter().any(|(_, p, _, _)| p.len() == 1) {
             break;
         }
-        for (_, parts, _) in raw.iter_mut() {
+        for (_, parts, _, _) in raw.iter_mut() {
             parts.remove(0);
         }
     }
@@ -297,12 +301,12 @@ pub fn read_archive(path: &Path) -> Result<Archive> {
     let wrapper = {
         let mut heads = raw
             .iter()
-            .filter(|(_, p, _)| p.len() > 1)
-            .map(|(_, p, _)| p[0].as_str());
+            .filter(|(_, p, _, _)| p.len() > 1)
+            .map(|(_, p, _, _)| p[0].as_str());
         match heads.next() {
             Some(first) => {
                 let head = first.to_string();
-                if heads.all(|h| h == head) && !raw.iter().any(|(_, p, _)| p.len() == 1) {
+                if heads.all(|h| h == head) && !raw.iter().any(|(_, p, _, _)| p.len() == 1) {
                     Some(head)
                 } else {
                     None
@@ -312,13 +316,14 @@ pub fn read_archive(path: &Path) -> Result<Archive> {
         }
     };
 
-    let total_bytes = raw.iter().map(|(_, _, s)| *s).sum();
+    let total_bytes = raw.iter().map(|(_, _, s, _)| *s).sum();
     let members = raw
         .into_iter()
-        .map(|(index, parts, size)| Member {
+        .map(|(index, parts, size, crc32)| Member {
             index,
             dest: parts.iter().collect::<PathBuf>(),
             size,
+            crc32,
         })
         .collect();
 
@@ -334,4 +339,45 @@ pub fn read_archive(path: &Path) -> Result<Archive> {
         wrapper,
         junk_skipped,
     })
+}
+
+/// Candidate plates archives in a folder, best first.
+///
+/// A cycle's download folder usually holds unrelated zips too, so this scores
+/// rather than guesses: the name saying "plates" is the strongest signal, a
+/// cycle matching the databases next, and sheer size last (a real plates
+/// archive is gigabytes). Anything scoring zero is not offered at all.
+pub fn rank_plate_archives(folder: &Path, target: Option<Cycle>) -> Vec<PathBuf> {
+    let Ok(entries) = fs::read_dir(folder) else {
+        return Vec::new();
+    };
+    let mut scored: Vec<(i32, u64, PathBuf)> = Vec::new();
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !name.to_ascii_lowercase().ends_with(".zip") || name.starts_with('.') {
+            continue;
+        }
+        let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+        let lower = name.to_ascii_lowercase();
+        let mut score = 0;
+        if lower.contains("plate") || lower.contains("chart") {
+            score += 4;
+        }
+        match (parse_cycle(&name), target) {
+            (Some(found), Some(want)) if found == want => score += 3,
+            (Some(_), _) => score += 1,
+            _ => {}
+        }
+        if size >= 100 * 1024 * 1024 {
+            score += 1;
+        }
+        if score > 0 {
+            scored.push((score, size, path));
+        }
+    }
+
+    scored.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)));
+    scored.into_iter().map(|(_, _, path)| path).collect()
 }

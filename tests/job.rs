@@ -93,6 +93,7 @@ fn plan(env: &Env) -> job::Plan {
         verify: true,
         replace_old: true,
         cycle: scan::parse_cycle("US-Plates-2608.zip"),
+        full_rebuild: false,
     }
 }
 
@@ -231,4 +232,209 @@ fn one_failing_drive_does_not_stop_the_others() {
         .unwrap();
     assert!(matches!(outcomes[0].result, job::Outcome::Failed(_)));
     assert_eq!(outcomes[1].result, job::Outcome::Updated);
+}
+
+#[test]
+fn the_sync_rewrites_only_what_changed_and_deletes_what_is_gone() {
+    let env = setup("sync");
+    let plates = env.root.join("ChartData/Plates");
+
+    // Pre-seed the drive so each case is represented:
+    //  a.png identical to the archive, b.png present but different,
+    //  old.png absent from the archive entirely.
+    fs::create_dir_all(plates.join("US")).unwrap();
+    {
+        let mut zip = zip::ZipArchive::new(File::open(&env.archive.path).unwrap()).unwrap();
+        for member in &env.archive.members {
+            if member.dest.to_str() == Some("US/a.png") {
+                let mut entry = zip.by_index(member.index).unwrap();
+                let mut bytes = Vec::new();
+                std::io::copy(&mut entry, &mut bytes).unwrap();
+                fs::write(plates.join("US/a.png"), &bytes).unwrap();
+            }
+        }
+    }
+    fs::write(plates.join("US/b.png"), b"stale contents").unwrap();
+    fs::write(plates.join("US/old.png"), b"no longer in the archive").unwrap();
+
+    let identical_before = fs::metadata(plates.join("US/a.png"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(1100)); // filesystem mtime resolution
+
+    let (tx, rx) = mpsc::channel();
+    job::run(plan(&env), tx, job::Cancel::new());
+    let mut log = Vec::new();
+    let mut outcomes = Vec::new();
+    for event in rx {
+        match event {
+            job::Event::Log { message, .. } => log.push(message),
+            job::Event::Finished(o) => outcomes = o,
+            _ => {}
+        }
+    }
+    assert_eq!(outcomes[0].result, job::Outcome::Updated);
+
+    // The identical file must not have been rewritten.
+    let identical_after = fs::metadata(plates.join("US/a.png"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    assert_eq!(
+        identical_before, identical_after,
+        "an unchanged plate was rewritten"
+    );
+
+    // The differing file must have been replaced with the archive's version.
+    assert_ne!(
+        fs::read(plates.join("US/b.png")).unwrap(),
+        b"stale contents"
+    );
+    // The plate missing from the archive must be gone.
+    assert!(
+        !plates.join("US/old.png").exists(),
+        "a plate not in the archive survived"
+    );
+
+    let summary = log
+        .iter()
+        .find(|m| m.contains("unchanged"))
+        .expect("no sync summary logged");
+    assert!(summary.contains("1 plates unchanged"), "got: {summary}");
+}
+
+#[test]
+fn a_databases_only_run_never_reaches_the_point_of_no_return() {
+    let env = setup("no-return");
+    let mut p = plan(&env);
+    p.archive = None;
+    let (tx, rx) = mpsc::channel();
+    let cancel = job::Cancel::new();
+    job::run(p, tx, cancel.clone());
+    assert!(!rx.iter().any(|e| matches!(e, job::Event::PointOfNoReturn)));
+    assert!(!cancel.past_point_of_no_return());
+}
+
+#[test]
+fn drives_are_updated_concurrently_not_one_after_another() {
+    let env = setup("parallel");
+    let mut p = plan(&env);
+    // Three copies of the same fixture drive, each a separate directory.
+    for n in 0..2 {
+        let extra = env.root.parent().unwrap().join(format!("EXTRA{n}"));
+        fs::create_dir_all(extra.join("ChartData/Plates")).unwrap();
+        let mut drive = drive::folder_target(&extra);
+        drive.name = format!("EXTRA{n}");
+        p.drives.push(drive);
+    }
+    let names: Vec<String> = p.drives.iter().map(|d| d.name.clone()).collect();
+
+    let (tx, rx) = mpsc::channel();
+    job::run(p, tx, job::Cancel::new());
+
+    // Interleaved per-drive events prove the drives ran at the same time
+    // rather than strictly in sequence.
+    let mut order = Vec::new();
+    let mut outcomes = Vec::new();
+    for event in rx {
+        match event {
+            job::Event::DriveState { drive, .. } => {
+                if order.last() != Some(&drive) {
+                    order.push(drive);
+                }
+            }
+            job::Event::Finished(o) => outcomes = o,
+            _ => {}
+        }
+    }
+    assert_eq!(outcomes.len(), 3, "every drive must report an outcome");
+    assert!(outcomes.iter().all(|o| o.result == job::Outcome::Updated));
+    // Outcomes come back in the order the drives were listed, whatever order
+    // the threads finished in.
+    assert_eq!(
+        outcomes.iter().map(|o| o.name.clone()).collect::<Vec<_>>(),
+        names
+    );
+    assert!(
+        order.len() > outcomes.len(),
+        "drive states never interleaved, so the drives ran sequentially: {order:?}"
+    );
+}
+
+/// Not run by default: builds a 20,000-plate archive to show what the sync
+/// saves on a realistic cycle. Run with `cargo test --release -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn sync_scale_benchmark() {
+    let base = fixture("scale-bench");
+    let src = base.join("dl");
+    fs::create_dir_all(&src).unwrap();
+    let aviation = src.join("airmate_av_data_us_2608_013712.dup");
+    let obstacle = src.join("airmate_obstacle_data_us_2608_013712.dup");
+    File::create(&aviation)
+        .unwrap()
+        .write_all(&vec![7u8; 8_600_000])
+        .unwrap();
+    File::create(&obstacle)
+        .unwrap()
+        .write_all(&vec![9u8; 2_000_000])
+        .unwrap();
+
+    let zip_path = src.join("US-Plates-2608.zip");
+    {
+        let mut zip = zip::ZipWriter::new(File::create(&zip_path).unwrap());
+        let opts: zip::write::FileOptions<()> =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let payload = vec![0xABu8; 16 * 1024];
+        for i in 0..20_000 {
+            zip.start_file(format!("ChartData/Plates/US/P{i:06}.png"), opts)
+                .unwrap();
+            zip.write_all(&payload).unwrap();
+        }
+        zip.finish().unwrap();
+    }
+    let archive = scan::read_archive(&zip_path).unwrap();
+
+    let root = base.join("DRIVE");
+    fs::create_dir_all(root.join("ChartData/Plates")).unwrap();
+    let make_plan = |archive: &scan::Archive| job::Plan {
+        drives: vec![drive::folder_target(&root)],
+        aviation: Some(aviation.clone()),
+        obstacle: Some(obstacle.clone()),
+        archive: Some(archive.clone()),
+        strip_wrapper: false,
+        verify: true,
+        replace_old: true,
+        cycle: scan::parse_cycle("US-Plates-2608.zip"),
+        full_rebuild: false,
+    };
+
+    let run_once = |label: &str, plan: job::Plan| -> std::time::Duration {
+        let started = std::time::Instant::now();
+        let (tx, rx) = mpsc::channel();
+        job::run(plan, tx, job::Cancel::new());
+        let mut summary = String::new();
+        for event in rx {
+            if let job::Event::Log { message, .. } = event {
+                if message.contains("unchanged") {
+                    summary = message;
+                }
+            }
+        }
+        let elapsed = started.elapsed();
+        println!("{label}: {:?}  {summary}", elapsed);
+        elapsed
+    };
+
+    let first = run_once("first install (nothing on the drive)", make_plan(&archive));
+    let second = run_once("re-run, same cycle already installed", make_plan(&archive));
+    println!(
+        "re-run took {:.0}% of the first install",
+        second.as_secs_f64() / first.as_secs_f64() * 100.0
+    );
+    assert!(
+        second < first,
+        "a re-run must be cheaper than the first install"
+    );
 }

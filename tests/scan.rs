@@ -157,3 +157,53 @@ fn real_archive_matches_the_measured_numbers() {
     );
     assert_eq!(archive.cycle.unwrap().label(), "2608");
 }
+
+#[test]
+fn plate_archives_are_ranked_and_decoys_ignored() {
+    let dir = tmpdir("archives");
+    for name in [
+        "US-Plates-2608.zip",
+        "US-Plates-2607.zip",
+        "324-Jaunell-Road.zip",
+        "notes.zip",
+    ] {
+        write_zip(&dir.join(name), &["x.png"]);
+    }
+    let cycle = scan::parse_cycle("airmate_av_data_us_2608_013712.dup");
+    let ranked = scan::rank_plate_archives(&dir, cycle);
+    let names: Vec<String> = ranked
+        .iter()
+        .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(
+        names.first().map(String::as_str),
+        Some("US-Plates-2608.zip")
+    );
+    assert!(names.contains(&"US-Plates-2607.zip".to_string()));
+    // An unrelated zip in the same folder must never be offered.
+    assert!(
+        !names.iter().any(|n| n.contains("Jaunell")),
+        "decoy ranked: {names:?}"
+    );
+    assert!(!names.iter().any(|n| n == "notes.zip"));
+}
+
+#[test]
+fn the_real_downloads_folder_picks_the_right_archive() {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let downloads = std::path::Path::new(&home).join("Downloads");
+    if !downloads.join("US-Plates-2608.zip").exists() {
+        eprintln!("skipping: real cycle files not present");
+        return;
+    }
+    let dups = scan::scan_dup_files(&downloads, 1);
+    let cycle = scan::newest(&dups, DupKind::Aviation).and_then(|d| d.cycle);
+    let ranked = scan::rank_plate_archives(&downloads, cycle);
+    assert_eq!(
+        ranked
+            .first()
+            .and_then(|p| p.file_name())
+            .map(|n| n.to_string_lossy().into_owned()),
+        Some("US-Plates-2608.zip".to_string())
+    );
+}

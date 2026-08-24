@@ -21,6 +21,15 @@
       <summary>Replace older databases</summary>
       <description>Delete previous-cycle aviation and obstacle databases from the drive root.</description>
     </key>
+    <key name="full-plate-rebuild" type="b">
+      <default>false</default>
+      <summary>Rewrite every plate</summary>
+      <description>
+        Write every plate in the archive instead of only the ones that are new
+        or have changed. Much slower; useful if a drive is suspected of holding
+        corrupt files.
+      </description>
+    </key>
     <key name="eject-when-finished" type="b">
       <default>false</default>
       <summary>Eject when finished</summary>

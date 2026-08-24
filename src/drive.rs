@@ -150,7 +150,26 @@ fn drive_from_root(path: &Path, name: String, kind: TargetKind, uuid: Option<Str
 }
 
 /// Removable volumes the system has mounted for us.
+///
+/// For screenshots and manual testing (`screenshots/capture.sh`), setting
+/// `DYNON_TEST_DRIVE_ROOTS` to a `:`-separated list of directories swaps in
+/// those fixture directories as the drive list instead of the real
+/// `GVolumeMonitor` mounts — so a run driving the UI never touches, and
+/// never even sees, real hardware. Unset (the default, including under
+/// `cargo test`), this is a no-op.
 pub fn enumerate() -> Vec<Drive> {
+    if let Ok(roots) = std::env::var("DYNON_TEST_DRIVE_ROOTS") {
+        return roots
+            .split(':')
+            .filter(|s| !s.is_empty())
+            .map(|s| {
+                let path = PathBuf::from(s);
+                let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                drive_from_root(&path, name, TargetKind::Mounted, None)
+            })
+            .collect();
+    }
+
     let mut drives = Vec::new();
     for mount in gio::VolumeMonitor::get().mounts() {
         if mount.is_shadowed() {

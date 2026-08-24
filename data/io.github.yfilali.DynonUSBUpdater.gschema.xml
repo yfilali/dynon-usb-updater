@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="io.github.yfilali.DynonUSBUpdater" path="/io/github/yfilali/DynonUSBUpdater/">
+    <key name="source-folder" type="s">
+      <default>''</default>
+      <summary>Update files source folder</summary>
+      <description>The folder scanned for this cycle's databases and plates archive. Empty means the XDG Downloads folder.</description>
+    </key>
+    <key name="plates-archive" type="s">
+      <default>''</default>
+      <summary>Selected plates archive</summary>
+      <description>Full path to the last-selected plates zip archive. Cleared automatically if it is no longer readable at launch.</description>
+    </key>
+    <key name="verify-copies" type="b">
+      <default>true</default>
+      <summary>Verify copies</summary>
+      <description>Read each database back from the drive and compare checksums after copying.</description>
+    </key>
+    <key name="replace-old-databases" type="b">
+      <default>true</default>
+      <summary>Replace older databases</summary>
+      <description>Delete previous-cycle aviation and obstacle databases from the drive root.</description>
+    </key>
+    <key name="eject-when-finished" type="b">
+      <default>false</default>
+      <summary>Eject when finished</summary>
+      <description>Eject each drive automatically after it is updated successfully.</description>
+    </key>
+    <key name="selected-drives" type="as">
+      <default>[]</default>
+      <summary>Remembered drive selection</summary>
+      <description>Entries of the form "{uuid}|{label}", matched by UUID first and label second on the next launch.</description>
+    </key>
+    <key name="manual-targets" type="as">
+      <default>[]</default>
+      <summary>Manually chosen drive folders</summary>
+      <description>Folder-target paths added through Choose Folder…, persisted across launches.</description>
+    </key>
+    <key name="window-width" type="i">
+      <default>820</default>
+      <summary>Window width</summary>
+    </key>
+    <key name="window-height" type="i">
+      <default>700</default>
+      <summary>Window height</summary>
+    </key>
+    <key name="window-maximized" type="b">
+      <default>false</default>
+      <summary>Window maximized state</summary>
+    </key>
+    <key name="first-run-done" type="b">
+      <default>false</default>
+      <summary>First-run banner shown</summary>
+      <description>Whether the one-time first-run banner has already been shown.</description>
+    </key>
+  </schema>
+</schemalist>

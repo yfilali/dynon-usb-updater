@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Symbolic icon: a USB-drive outline with a solid downward arrow inside,
+     designed at 16x16 (not scaled down from the colour icon). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <path fill="currentColor" fill-rule="evenodd" d="
+    M 5.5 1
+    C 5.5 0.72 5.72 0.5 6 0.5
+    L 10 0.5
+    C 10.28 0.5 10.5 0.72 10.5 1
+    L 10.5 3
+    L 11.5 3
+    C 12.6 3 13.5 3.9 13.5 5
+    L 13.5 13
+    C 13.5 14.1 12.6 15 11.5 15
+    L 4.5 15
+    C 3.4 15 2.5 14.1 2.5 13
+    L 2.5 5
+    C 2.5 3.9 3.4 3 4.5 3
+    L 5.5 3
+    Z
+    M 6.5 1.5 L 6.5 3 L 9.5 3 L 9.5 1.5 Z
+    M 4.5 4
+    C 3.95 4 3.5 4.45 3.5 5
+    L 3.5 13
+    C 3.5 13.55 3.95 14 4.5 14
+    L 11.5 14
+    C 12.05 14 12.5 13.55 12.5 13
+    L 12.5 5
+    C 12.5 4.45 12.05 4 11.5 4
+    Z
+    M 8 6
+    L 10.5 8.5
+    L 9 8.5
+    L 9 11
+    L 7 11
+    L 7 8.5
+    L 5.5 8.5
+    Z"/>
+</svg>

@@ -152,6 +152,7 @@ mod imp {
         #[allow(deprecated)]
         pub help_overlay: RefCell<Option<gtk::ShortcutsWindow>>,
         pub result_details_scroller: RefCell<Option<gtk::Widget>>,
+        pub scan_generation: std::cell::Cell<u64>,
     }
 
     #[glib::object_subclass]
@@ -772,17 +773,85 @@ impl DynonWindow {
             drives.push(drive::folder_target(&path));
         }
 
-        // Measuring an existing plates folder walks tens of thousands of files;
-        // do it once per refresh, off the main loop, and fill the cards in when
-        // it lands.
-        for drive in &mut drives {
-            if drive.reachable {
-                drive.reclaimable = Some(drive::measure_plates(&drive.plates_dir()));
-            }
-        }
-
+        // Measuring an existing plates folder walks tens of thousands of files
+        // on real hardware (27,490+ on a FAT stick is not unusual) — doing it
+        // synchronously here has been observed to peg the main thread for
+        // many seconds with real drives attached. Cards render immediately
+        // with `reclaimable` still unknown (§6.3: "until it lands, the card
+        // shows Checking…"), and a background thread fills each in.
         self.rebuild_cards(drives, &previously_checked);
         self.update_ready();
+        self.spawn_reclaimable_scan();
+    }
+
+    /// Fills in each reachable drive's `reclaimable` off the main thread, one
+    /// message per drive, repainting just that card as results land. Stale
+    /// results from a superseded scan (a rescan started before this one
+    /// finished) are dropped via the generation counter.
+    fn spawn_reclaimable_scan(&self) {
+        let imp = self.imp();
+        let generation = imp.scan_generation.get() + 1;
+        imp.scan_generation.set(generation);
+
+        let targets: Vec<(String, PathBuf)> = imp
+            .cards
+            .borrow()
+            .iter()
+            .filter(|c| c.drive.reachable)
+            .map(|c| (c.drive.key(), c.drive.plates_dir()))
+            .collect();
+        if targets.is_empty() {
+            return;
+        }
+
+        let (tx, rx) = channel();
+        std::thread::spawn(move || {
+            for (key, dir) in targets {
+                let measured = drive::measure_plates(&dir);
+                if tx.send((key, measured)).is_err() {
+                    break;
+                }
+            }
+        });
+
+        glib::timeout_add_local(Duration::from_millis(150), clone!(
+            #[weak(rename_to = win)] self,
+            #[upgrade_or] glib::ControlFlow::Break,
+            move || {
+                if win.imp().scan_generation.get() != generation {
+                    return glib::ControlFlow::Break;
+                }
+                let mut any = false;
+                let mut exhausted = false;
+                loop {
+                    match rx.try_recv() {
+                        Ok((key, measured)) => {
+                            any = true;
+                            let needed = win.bytes_needed();
+                            let target_cycle = win.imp().sources.borrow().cycle();
+                            let mut cards = win.imp().cards.borrow_mut();
+                            if let Some(card) = cards.iter_mut().find(|c| c.drive.key() == key) {
+                                card.drive.reclaimable = Some(measured);
+                                win.paint_card(card, needed, target_cycle);
+                            }
+                        }
+                        Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                            exhausted = true;
+                            break;
+                        }
+                    }
+                }
+                if any {
+                    win.update_ready();
+                }
+                if exhausted {
+                    glib::ControlFlow::Break
+                } else {
+                    glib::ControlFlow::Continue
+                }
+            }
+        ));
     }
 
     fn rebuild_cards(&self, drives: Vec<Drive>, previously_checked: &[String]) {

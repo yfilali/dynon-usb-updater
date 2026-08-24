@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dynon USB Updater — an approach plate loading into a USB drive.
+     128x128 canvas, GNOME app-icon template, content inside 112x112 safe area. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="drive-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#62a0ea"/>
+      <stop offset="1" stop-color="#1c71d8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Chart sheet (back layer): portrait rounded rect, rotated -8deg, upper-left. -->
+  <g transform="rotate(-8 52 50)">
+    <rect x="21" y="10" width="62" height="80" rx="6" fill="#ffffff" stroke="#9a9996" stroke-width="1.5"/>
+    <!-- inset border box standing in for the plate frame -->
+    <rect x="27" y="16" width="50" height="68" rx="2" fill="none" stroke="#77767b" stroke-width="2"/>
+    <!-- briefing strip rules -->
+    <line x1="31" y1="23" x2="61" y2="23" stroke="#c0bfbc" stroke-width="2" stroke-linecap="round"/>
+    <line x1="31" y1="29" x2="53" y2="29" stroke="#c0bfbc" stroke-width="2" stroke-linecap="round"/>
+    <!-- magenta course line, lower-left to upper-right, with arrowhead -->
+    <line x1="34" y1="76" x2="66" y2="30" stroke="#c061cb" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 66 30 L 59 33 L 63 39 Z" fill="#c061cb"/>
+    <!-- fix -->
+    <circle cx="50" cy="53" r="3.6" fill="#3584e4"/>
+  </g>
+
+  <!-- Drop shadow the drive casts onto the chart -->
+  <rect x="66" y="48" width="40" height="76" rx="9" transform="rotate(8 86 86)" fill="#000000" opacity="0.12"/>
+
+  <!-- USB drive (front layer): vertical, tilted +8deg, lower-right. -->
+  <g transform="rotate(8 82 82)">
+    <rect x="62" y="44" width="40" height="76" rx="8" fill="url(#drive-body)" stroke="#1a5fb4" stroke-width="1.5"/>
+    <!-- left-edge highlight -->
+    <rect x="65" y="48" width="3" height="68" rx="1.5" fill="#ffffff" opacity="0.25"/>
+    <!-- connector -->
+    <rect x="69" y="36" width="26" height="22" rx="4" fill="#deddda" stroke="#9a9996" stroke-width="1.5"/>
+    <rect x="74" y="42" width="6" height="3" rx="1" fill="#77767b"/>
+    <rect x="84" y="42" width="6" height="3" rx="1" fill="#77767b"/>
+    <!-- load cue: downward chevron -->
+    <path d="M 73 74 L 82 84 L 91 74" fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="4"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

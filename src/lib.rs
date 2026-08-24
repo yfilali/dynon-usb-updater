@@ -1,3 +1,4 @@
+pub mod application;
 pub mod drive;
 pub mod job;
 pub mod scan;

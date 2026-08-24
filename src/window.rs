@@ -1060,7 +1060,6 @@ impl DynonWindow {
     fn rebuild_cards(&self, drives: Vec<Drive>, previously_checked: &[String]) {
         let imp = self.imp();
         while let Some(child) = imp.drive_flow.first_child() {
-            eprintln!("DIAG: drive_flow.remove");
             imp.drive_flow.remove(&child);
         }
         imp.cards.borrow_mut().clear();
@@ -1337,7 +1336,6 @@ impl DynonWindow {
         let imp = self.imp();
         imp.drives_stack.set_visible_child_name("empty");
         while let Some(child) = imp.drives_empty_actions.first_child() {
-            eprintln!("DIAG: drives_empty_actions.remove");
             imp.drives_empty_actions.remove(&child);
         }
 
@@ -2031,7 +2029,6 @@ impl DynonWindow {
 
         if let Some(old) = imp.run.borrow_mut().take() {
             for (_, row) in old.rows {
-                eprintln!("DIAG: running_drives.remove");
                 imp.running_drives.remove(&row.row);
             }
             if old.inhibit != 0 {
@@ -2592,11 +2589,9 @@ impl DynonWindow {
         );
 
         for row in imp.result_rows.borrow_mut().drain(..) {
-            eprintln!("DIAG: result_drives.remove");
             imp.result_drives.remove(&row);
         }
         while let Some(child) = imp.result_actions.first_child() {
-            eprintln!("DIAG: result_actions.remove");
             imp.result_actions.remove(&child);
         }
 
@@ -2690,7 +2685,6 @@ impl DynonWindow {
         imp.result_actions.append(&done);
 
         if let Some(old) = imp.result_details_scroller.borrow_mut().take() {
-            eprintln!("DIAG: result_details_row.remove");
             imp.result_details_row.remove(&old);
         }
         let details_list = self.build_plain_log_list();

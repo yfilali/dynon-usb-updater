@@ -54,7 +54,7 @@ command -v "$python3_bin" >/dev/null 2>&1 || python3_bin=python3
 "$python3_bin" - "$ZIPSTAGE" << 'PYEOF'
 import os, sys
 d = sys.argv[1]
-for i in range(3000):
+for i in range(20000):
     with open(os.path.join(d, f"PLATE_{i:05d}.png"), "wb") as f:
         f.write(os.urandom(400))
 PYEOF
@@ -103,14 +103,14 @@ cat > "$CFG/glib-2.0/settings/keyfile" << KEOF
 source-folder='$FIX/downloads'
 plates-archive='$FIX/downloads/US-Plates-2608.zip'
 window-width=820
-window-height=860
+window-height=1150
 KEOF
 mkdir -p "$WORK/xdg-data"
 
 run_app() {
   local drive_roots="$1"
   shift
-  GDK_BACKEND=x11 GDK_SCALE=1 DISPLAY="${DISPLAY:-:0}" \
+  GDK_BACKEND=x11 GDK_SCALE="${CAPTURE_SCALE:-2}" DISPLAY="${DISPLAY:-:0}" \
   GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
   GSETTINGS_BACKEND=keyfile \
   XDG_CONFIG_HOME="$CFG" \
@@ -134,7 +134,12 @@ wait_for_window() {
 }
 
 shoot() {
-  local id="$1" name="$2"
+  local name="$1" id
+  # Re-resolve the window id right before capturing rather than trusting one
+  # cached from earlier in the run — the id has been observed to go stale
+  # (a wm/XWayland quirk in some remote display setups, not an app crash;
+  # the app process itself is still alive and unchanged when this happens).
+  id="$(wait_for_window)"
   DISPLAY="${DISPLAY:-:0}" xwd -id "$id" -out "$WORK/$name.xwd"
   magick "$WORK/$name.xwd" "$OUT_DIR/$name.png"
   echo "==> wrote $OUT_DIR/$name.png"
@@ -143,9 +148,9 @@ shoot() {
 # --- Ready state --------------------------------------------------------
 echo "==> Capturing ready.png"
 run_app "$FIX/DYNON:$FIX/DYNON2"
-ID="$(wait_for_window)"
+wait_for_window > /dev/null
 sleep 0.5
-shoot "$ID" ready
+shoot ready
 
 kill_app
 sleep 0.5
@@ -153,13 +158,13 @@ sleep 0.5
 # --- Running + result states (DYNON_AUTO_RUN bypasses D1 deterministically) --
 echo "==> Capturing running.png / result.png"
 run_app "$FIX/DYNON:$FIX/DYNON2" env DYNON_AUTO_RUN=1
-ID="$(wait_for_window)"
-sleep 2.2
-shoot "$ID" running
+wait_for_window > /dev/null
+sleep 1.8
+shoot running
 
 # Result never auto-dismisses, so a generous fixed wait is fine.
-sleep 8
-shoot "$ID" result
+sleep 10
+shoot result
 
 kill_app
 sleep 0.5
@@ -167,9 +172,9 @@ sleep 0.5
 # --- No drives connected --------------------------------------------------
 echo "==> Capturing drives-empty.png"
 run_app ""
-ID="$(wait_for_window)"
+wait_for_window > /dev/null
 sleep 0.5
-shoot "$ID" drives-empty
+shoot drives-empty
 
 kill_app
 echo "==> Done. Screenshots written to $OUT_DIR"

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<gresources>
-  <gresource prefix="/io/github/yfilali/DynonUSBUpdater">
-    <file alias="icons/scalable/apps/io.github.yfilali.DynonUSBUpdater.svg">icons/hicolor/scalable/apps/io.github.yfilali.DynonUSBUpdater.svg</file>
-    <file alias="icons/symbolic/apps/io.github.yfilali.DynonUSBUpdater-symbolic.svg">icons/hicolor/symbolic/apps/io.github.yfilali.DynonUSBUpdater-symbolic.svg</file>
-  </gresource>
-</gresources>

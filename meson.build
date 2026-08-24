@@ -16,9 +16,7 @@ cargo = find_program('cargo')
 cargo_build_script = find_program('build-aux' / 'cargo-build.sh')
 
 # meson wraps cargo rather than replacing it: `cargo build`/`cargo test` at
-# the repository root keep working unmodified for day-to-day development
-# (see build.rs, which compiles data/resources.gresource.xml the same way
-# whichever invokes cargo).
+# the repository root keep working unmodified for day-to-day development.
 cargo_build = custom_target(
   'cargo-build',
   build_by_default: true,

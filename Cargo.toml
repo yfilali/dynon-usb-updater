@@ -2,6 +2,7 @@
 name = "dynon-usb-updater"
 version = "1.0.0"
 edition = "2021"
+build = "build.rs"
 rust-version = "1.80"
 description = "Prepare USB drives for your avionics"
 license = "GPL-3.0-or-later"

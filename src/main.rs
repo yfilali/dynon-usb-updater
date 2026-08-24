@@ -12,7 +12,8 @@ fn main() -> glib::ExitCode {
     adw::init().expect("libadwaita failed to initialise");
     gtk::Window::set_default_icon_name(APP_ID);
     if let Some(display) = gtk::gdk::Display::default() {
-        gtk::IconTheme::for_display(&display).add_resource_path("/io/github/yfilali/DynonUSBUpdater/icons");
+        gtk::IconTheme::for_display(&display)
+            .add_resource_path("/io/github/yfilali/DynonUSBUpdater/icons");
     }
 
     let app = DynonApplication::new();

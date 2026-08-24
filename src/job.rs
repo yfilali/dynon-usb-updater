@@ -39,11 +39,23 @@ pub enum DriveState {
 #[derive(Debug, Clone)]
 pub enum Event {
     /// Headline step and its detail line, for the running page.
-    Step { step: String, detail: String },
+    Step {
+        step: String,
+        detail: String,
+    },
     /// Bytes written so far, against the planned total.
-    Progress { done: u64, total: u64 },
-    DriveState { drive: String, state: DriveState },
-    Log { severity: Severity, message: String },
+    Progress {
+        done: u64,
+        total: u64,
+    },
+    DriveState {
+        drive: String,
+        state: DriveState,
+    },
+    Log {
+        severity: Severity,
+        message: String,
+    },
     /// The first plate has been deleted: stopping now leaves the drive broken.
     PointOfNoReturn,
     Finished(Vec<DriveOutcome>),
@@ -148,14 +160,23 @@ impl Ctx {
         let _ = self.tx.send(event);
     }
     fn log(&self, severity: Severity, message: impl Into<String>) {
-        self.send(Event::Log { severity, message: message.into() });
+        self.send(Event::Log {
+            severity,
+            message: message.into(),
+        });
     }
     fn step(&self, step: impl Into<String>, detail: impl Into<String>) {
-        self.send(Event::Step { step: step.into(), detail: detail.into() });
+        self.send(Event::Step {
+            step: step.into(),
+            detail: detail.into(),
+        });
     }
     fn bump(&mut self, bytes: u64) {
         self.done += bytes;
-        self.send(Event::Progress { done: self.done, total: self.total });
+        self.send(Event::Progress {
+            done: self.done,
+            total: self.total,
+        });
     }
     fn cancelled(&self) -> bool {
         self.cancel.is_cancelled()
@@ -180,10 +201,18 @@ impl From<Stopped> for StepError {
 /// Run the plan. Blocks; call it on a worker thread.
 pub fn run(plan: Plan, tx: Sender<Event>, cancel: Cancel) {
     let total = plan.total_work();
-    let mut ctx = Ctx { tx, cancel, done: 0, total };
+    let mut ctx = Ctx {
+        tx,
+        cancel,
+        done: 0,
+        total,
+    };
     let mut outcomes = Vec::new();
 
-    ctx.step("Preparing…", format!("Checking space on {} drives", plan.drives.len()));
+    ctx.step(
+        "Preparing…",
+        format!("Checking space on {} drives", plan.drives.len()),
+    );
 
     for drive in &plan.drives {
         if ctx.cancelled() {
@@ -196,7 +225,10 @@ pub fn run(plan: Plan, tx: Sender<Event>, cancel: Cancel) {
                 plates_written: 0,
                 cycle: None,
             });
-            ctx.send(Event::DriveState { drive: drive.name.clone(), state: DriveState::Skipped });
+            ctx.send(Event::DriveState {
+                drive: drive.name.clone(),
+                state: DriveState::Skipped,
+            });
             continue;
         }
 
@@ -219,11 +251,17 @@ pub fn run(plan: Plan, tx: Sender<Event>, cancel: Cancel) {
                 (Outcome::Updated, DriveState::Done)
             }
             Err(StepError::Stopped) if erased => {
-                ctx.log(Severity::Error, format!("{}: stopped — plates folder is incomplete", drive.name));
+                ctx.log(
+                    Severity::Error,
+                    format!("{}: stopped — plates folder is incomplete", drive.name),
+                );
                 (Outcome::Interrupted, DriveState::Stopped)
             }
             Err(StepError::Stopped) => {
-                ctx.log(Severity::Warning, format!("{}: stopped before anything was changed", drive.name));
+                ctx.log(
+                    Severity::Warning,
+                    format!("{}: stopped before anything was changed", drive.name),
+                );
                 (Outcome::Skipped, DriveState::Stopped)
             }
             Err(StepError::Failed(reason)) => {
@@ -232,7 +270,10 @@ pub fn run(plan: Plan, tx: Sender<Event>, cancel: Cancel) {
             }
         };
 
-        ctx.send(Event::DriveState { drive: drive.name.clone(), state });
+        ctx.send(Event::DriveState {
+            drive: drive.name.clone(),
+            state,
+        });
         outcomes.push(DriveOutcome {
             name: drive.name.clone(),
             path: drive.path.clone(),
@@ -254,7 +295,17 @@ fn update_drive(
     plates_written: &mut usize,
     erased: &mut bool,
 ) -> Step<()> {
-    ctx.send(Event::DriveState { drive: drive.name.clone(), state: DriveState::CopyingDatabases });
+    ctx.send(Event::DriveState {
+        drive: drive.name.clone(),
+        state: DriveState::CopyingDatabases,
+    });
+
+    // Allocated once and reused for every file this drive touches — a plates
+    // archive can hold 23,000+ tiny members, and a fresh `vec![0u8; CHUNK]`
+    // per member (a 1 MiB allocation each time) was measured to make
+    // extraction pathologically slow under sandboxed/containerized syscall
+    // interception, where each mmap/munmap round-trip carries real overhead.
+    let mut buffer = vec![0u8; CHUNK];
 
     let needed = plan.bytes_per_drive();
     let reclaim = if plan.archive.is_some() {
@@ -264,7 +315,9 @@ fn update_drive(
     };
     let (_, free, writable) = (drive.total, drive.free, drive.writable);
     if !writable {
-        return Err(StepError::Failed("the drive stopped accepting writes".into()));
+        return Err(StepError::Failed(
+            "the drive stopped accepting writes".into(),
+        ));
     }
     if needed > free.saturating_add(reclaim) {
         return Err(StepError::Failed(format!(
@@ -290,8 +343,16 @@ fn update_drive(
         (scan::DupKind::Obstacle, &plan.obstacle),
     ] {
         let Some(source) = source else { continue };
-        let file_name = source.file_name().unwrap_or_default().to_string_lossy().into_owned();
-        let label = if kind == scan::DupKind::Aviation { "aviation" } else { "obstacle" };
+        let file_name = source
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
+        let label = if kind == scan::DupKind::Aviation {
+            "aviation"
+        } else {
+            "obstacle"
+        };
 
         if plan.replace_old {
             remove_old_databases(drive, kind, &file_name, ctx);
@@ -302,17 +363,26 @@ fn update_drive(
             file_name.clone(),
         );
         let dest = drive.path.join(&file_name);
-        copy_verified(source, &dest, ctx).map_err(|e| match e {
+        copy_verified(source, &dest, ctx, &mut buffer).map_err(|e| match e {
             StepError::Stopped => StepError::Stopped,
             StepError::Failed(m) => StepError::Failed(m),
         })?;
-        ctx.log(Severity::Success, format!("{}: copied {file_name}", drive.name));
+        ctx.log(
+            Severity::Success,
+            format!("{}: copied {file_name}", drive.name),
+        );
 
         if plan.verify {
-            ctx.send(Event::DriveState { drive: drive.name.clone(), state: DriveState::CheckingCopies });
-            ctx.step(format!("Checking the copy on {}", drive.name), "Comparing checksums");
-            let want = digest(source, ctx)?;
-            let got = digest(&dest, ctx)?;
+            ctx.send(Event::DriveState {
+                drive: drive.name.clone(),
+                state: DriveState::CheckingCopies,
+            });
+            ctx.step(
+                format!("Checking the copy on {}", drive.name),
+                "Comparing checksums",
+            );
+            let want = digest(source, ctx, &mut buffer)?;
+            let got = digest(&dest, ctx, &mut buffer)?;
             ctx.bump(fs::metadata(source).map(|m| m.len()).unwrap_or(0));
             if want != got {
                 let _ = fs::remove_file(&dest);
@@ -320,7 +390,10 @@ fn update_drive(
                     "the copy of {file_name} did not match the original. Nothing was left half-written"
                 )));
             }
-            ctx.log(Severity::Success, format!("{}: checksum matches", drive.name));
+            ctx.log(
+                Severity::Success,
+                format!("{}: checksum matches", drive.name),
+            );
         }
     }
 
@@ -329,27 +402,43 @@ fn update_drive(
         let members = archive.members_stripped(plan.strip_wrapper);
         let plates_dir = drive.plates_dir();
 
-        ctx.send(Event::DriveState { drive: drive.name.clone(), state: DriveState::ErasingPlates });
-        ctx.step(format!("Erasing old plates on {}", drive.name), String::new());
+        ctx.send(Event::DriveState {
+            drive: drive.name.clone(),
+            state: DriveState::ErasingPlates,
+        });
+        ctx.step(
+            format!("Erasing old plates on {}", drive.name),
+            String::new(),
+        );
         let (_, existing) = measure_plates(&plates_dir);
         if plates_dir.exists() {
             ctx.cancel.mark_no_return();
             *erased = true;
             ctx.send(Event::PointOfNoReturn);
-            clear_dir(&plates_dir).map_err(|e| StepError::Failed(format!("could not clear the plates folder: {e}")))?;
+            clear_dir(&plates_dir).map_err(|e| {
+                StepError::Failed(format!("could not clear the plates folder: {e}"))
+            })?;
             ctx.log(
                 Severity::Warning,
-                format!("{}: erased {existing} files from ChartData/Plates", drive.name),
+                format!(
+                    "{}: erased {existing} files from ChartData/Plates",
+                    drive.name
+                ),
             );
         }
         fs::create_dir_all(&plates_dir)
             .map_err(|e| StepError::Failed(format!("could not create the plates folder: {e}")))?;
 
-        ctx.send(Event::DriveState { drive: drive.name.clone(), state: DriveState::ExtractingPlates });
-        let file = File::open(&archive.path)
-            .map_err(|_| StepError::Failed("the plates archive was changed while the update was running".into()))?;
-        let mut zip = zip::ZipArchive::new(file)
-            .map_err(|_| StepError::Failed("the plates archive was changed while the update was running".into()))?;
+        ctx.send(Event::DriveState {
+            drive: drive.name.clone(),
+            state: DriveState::ExtractingPlates,
+        });
+        let file = File::open(&archive.path).map_err(|_| {
+            StepError::Failed("the plates archive was changed while the update was running".into())
+        })?;
+        let mut zip = zip::ZipArchive::new(file).map_err(|_| {
+            StepError::Failed("the plates archive was changed while the update was running".into())
+        })?;
 
         let total = members.len();
         let mut unreadable = 0usize;
@@ -367,7 +456,7 @@ fn update_drive(
             if let Some(parent) = target.parent() {
                 let _ = fs::create_dir_all(parent);
             }
-            match extract_one(&mut zip, member.index, &target, ctx) {
+            match extract_one(&mut zip, member.index, &target, ctx, &mut buffer) {
                 Ok(()) => *plates_written += 1,
                 Err(StepError::Stopped) => return Err(StepError::Stopped),
                 Err(StepError::Failed(_)) => {
@@ -385,19 +474,30 @@ fn update_drive(
         if unreadable > 0 {
             ctx.log(
                 Severity::Warning,
-                format!("{}: {unreadable} plates could not be read from the archive", drive.name),
+                format!(
+                    "{}: {unreadable} plates could not be read from the archive",
+                    drive.name
+                ),
             );
         }
     }
 
-    ctx.send(Event::DriveState { drive: drive.name.clone(), state: DriveState::Finishing });
-    ctx.step(format!("Finishing writes to {}", drive.name), "Do not unplug the drive");
+    ctx.send(Event::DriveState {
+        drive: drive.name.clone(),
+        state: DriveState::Finishing,
+    });
+    ctx.step(
+        format!("Finishing writes to {}", drive.name),
+        "Do not unplug the drive",
+    );
     sync_dir(&drive.path);
     Ok(())
 }
 
 fn remove_old_databases(drive: &Drive, kind: scan::DupKind, keep: &str, ctx: &Ctx) {
-    let Ok(entries) = fs::read_dir(&drive.path) else { return };
+    let Ok(entries) = fs::read_dir(&drive.path) else {
+        return;
+    };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
         if !name.to_ascii_lowercase().ends_with(".dup") || name == keep {
@@ -414,17 +514,20 @@ fn remove_old_databases(drive: &Drive, kind: scan::DupKind, keep: &str, ctx: &Ct
 
 /// Write through a `.part` file and rename, so an interrupted copy never
 /// leaves a half-written file under the real name.
-fn copy_verified(source: &Path, dest: &Path, ctx: &mut Ctx) -> Step<()> {
+fn copy_verified(source: &Path, dest: &Path, ctx: &mut Ctx, buffer: &mut [u8]) -> Step<()> {
     let part = dest.with_extension("part");
-    let mut input = File::open(source).map_err(|e| StepError::Failed(format!("could not read {}: {e}", source.display())))?;
-    let mut output = File::create(&part).map_err(|e| StepError::Failed(format!("could not write to the drive: {e}")))?;
-    let mut buffer = vec![0u8; CHUNK];
+    let mut input = File::open(source)
+        .map_err(|e| StepError::Failed(format!("could not read {}: {e}", source.display())))?;
+    let mut output = File::create(&part)
+        .map_err(|e| StepError::Failed(format!("could not write to the drive: {e}")))?;
     loop {
         if ctx.cancelled() {
             let _ = fs::remove_file(&part);
             return Err(StepError::Stopped);
         }
-        let read = input.read(&mut buffer).map_err(|e| StepError::Failed(format!("read error: {e}")))?;
+        let read = input
+            .read(buffer)
+            .map_err(|e| StepError::Failed(format!("read error: {e}")))?;
         if read == 0 {
             break;
         }
@@ -434,9 +537,12 @@ fn copy_verified(source: &Path, dest: &Path, ctx: &mut Ctx) -> Step<()> {
         ctx.bump(read as u64);
     }
     output.flush().ok();
-    output.sync_all().map_err(|e| StepError::Failed(format!("the drive reported a write error: {e}")))?;
+    output
+        .sync_all()
+        .map_err(|e| StepError::Failed(format!("the drive reported a write error: {e}")))?;
     drop(output);
-    fs::rename(&part, dest).map_err(|e| StepError::Failed(format!("could not finish writing: {e}")))?;
+    fs::rename(&part, dest)
+        .map_err(|e| StepError::Failed(format!("could not finish writing: {e}")))?;
     Ok(())
 }
 
@@ -445,19 +551,19 @@ fn extract_one(
     index: usize,
     target: &Path,
     ctx: &mut Ctx,
+    buffer: &mut [u8],
 ) -> Step<()> {
     let mut entry = zip
         .by_index(index)
         .map_err(|e| StepError::Failed(format!("unreadable archive member: {e}")))?;
     let mut output = File::create(target)
         .map_err(|e| StepError::Failed(format!("the drive reported a write error: {e}")))?;
-    let mut buffer = vec![0u8; CHUNK];
     loop {
         if ctx.cancelled() {
             return Err(StepError::Stopped);
         }
         let read = entry
-            .read(&mut buffer)
+            .read(buffer)
             .map_err(|e| StepError::Failed(format!("unreadable archive member: {e}")))?;
         if read == 0 {
             break;
@@ -470,15 +576,17 @@ fn extract_one(
     Ok(())
 }
 
-fn digest(path: &Path, ctx: &Ctx) -> Step<[u8; 32]> {
-    let mut file = File::open(path).map_err(|e| StepError::Failed(format!("could not re-read {}: {e}", path.display())))?;
+fn digest(path: &Path, ctx: &Ctx, buffer: &mut [u8]) -> Step<[u8; 32]> {
+    let mut file = File::open(path)
+        .map_err(|e| StepError::Failed(format!("could not re-read {}: {e}", path.display())))?;
     let mut hasher = Sha256::new();
-    let mut buffer = vec![0u8; CHUNK];
     loop {
         if ctx.cancelled() {
             return Err(StepError::Stopped);
         }
-        let read = file.read(&mut buffer).map_err(|e| StepError::Failed(format!("read error: {e}")))?;
+        let read = file
+            .read(buffer)
+            .map_err(|e| StepError::Failed(format!("read error: {e}")))?;
         if read == 0 {
             break;
         }

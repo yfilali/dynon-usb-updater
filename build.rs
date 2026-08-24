@@ -17,11 +17,15 @@ fn main() {
     println!("cargo:rerun-if-changed={}", xml.display());
     println!(
         "cargo:rerun-if-changed={}",
-        data_dir.join("icons/hicolor/scalable/apps/io.github.yfilali.DynonUSBUpdater.svg").display()
+        data_dir
+            .join("icons/hicolor/scalable/apps/io.github.yfilali.DynonUSBUpdater.svg")
+            .display()
     );
     println!(
         "cargo:rerun-if-changed={}",
-        data_dir.join("icons/hicolor/symbolic/apps/io.github.yfilali.DynonUSBUpdater-symbolic.svg").display()
+        data_dir
+            .join("icons/hicolor/symbolic/apps/io.github.yfilali.DynonUSBUpdater-symbolic.svg")
+            .display()
     );
 
     let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR set by cargo");
@@ -30,7 +34,9 @@ fn main() {
     let compiler = COMPILER_CANDIDATES
         .iter()
         .find(|c| Command::new(c).arg("--version").output().is_ok())
-        .unwrap_or_else(|| panic!("glib-compile-resources not found; tried {COMPILER_CANDIDATES:?}"));
+        .unwrap_or_else(|| {
+            panic!("glib-compile-resources not found; tried {COMPILER_CANDIDATES:?}")
+        });
 
     let status = Command::new(compiler)
         .arg(format!("--sourcedir={}", data_dir.display()))

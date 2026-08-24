@@ -152,7 +152,10 @@ fn collect_dups(dir: &Path, depth_left: usize, out: &mut Vec<DupFile>) {
 }
 
 pub fn newest(files: &[DupFile], kind: DupKind) -> Option<&DupFile> {
-    files.iter().filter(|f| f.kind == kind).max_by_key(|f| f.rank())
+    files
+        .iter()
+        .filter(|f| f.kind == kind)
+        .max_by_key(|f| f.rank())
 }
 
 // ---------------------------------------------------------------------------

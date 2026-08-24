@@ -102,46 +102,84 @@ mod imp {
     #[derive(CompositeTemplate, Default)]
     #[template(file = "ui/window.ui")]
     pub struct DynonWindow {
-        #[template_child] pub toasts: TemplateChild<adw::ToastOverlay>,
-        #[template_child] pub window_title: TemplateChild<adw::WindowTitle>,
-        #[template_child] pub menu_button: TemplateChild<gtk::MenuButton>,
-        #[template_child] pub stack: TemplateChild<adw::ViewStack>,
-        #[template_child] pub banner: TemplateChild<adw::Banner>,
-        #[template_child] pub source_path: TemplateChild<gtk::Label>,
-        #[template_child] pub change_folder: TemplateChild<gtk::Button>,
-        #[template_child] pub aviation_row: TemplateChild<adw::ActionRow>,
-        #[template_child] pub aviation_cycle: TemplateChild<gtk::Label>,
-        #[template_child] pub aviation_menu: TemplateChild<gtk::MenuButton>,
-        #[template_child] pub obstacle_row: TemplateChild<adw::ActionRow>,
-        #[template_child] pub obstacle_cycle: TemplateChild<gtk::Label>,
-        #[template_child] pub obstacle_menu: TemplateChild<gtk::MenuButton>,
-        #[template_child] pub plates_row: TemplateChild<adw::ActionRow>,
-        #[template_child] pub plates_cycle: TemplateChild<gtk::Label>,
-        #[template_child] pub plates_menu: TemplateChild<gtk::MenuButton>,
-        #[template_child] pub plates_spinner: TemplateChild<adw::Spinner>,
-        #[template_child] pub choose_folder: TemplateChild<gtk::Button>,
-        #[template_child] pub rescan: TemplateChild<gtk::Button>,
-        #[template_child] pub drives_stack: TemplateChild<gtk::Stack>,
-        #[template_child] pub drive_flow: TemplateChild<gtk::FlowBox>,
-        #[template_child] pub drives_empty: TemplateChild<adw::StatusPage>,
-        #[template_child] pub drives_empty_actions: TemplateChild<gtk::Box>,
-        #[template_child] pub update_button: TemplateChild<gtk::Button>,
-        #[template_child] pub reason_label: TemplateChild<gtk::Label>,
-        #[template_child] pub percent_label: TemplateChild<gtk::Label>,
-        #[template_child] pub progress: TemplateChild<gtk::ProgressBar>,
-        #[template_child] pub step_label: TemplateChild<gtk::Label>,
-        #[template_child] pub detail_label: TemplateChild<gtk::Label>,
-        #[template_child] pub eta_label: TemplateChild<gtk::Label>,
-        #[template_child] pub running_drives: TemplateChild<adw::PreferencesGroup>,
-        #[template_child] pub details_row: TemplateChild<adw::ExpanderRow>,
-        #[template_child] pub cancel_button: TemplateChild<gtk::Button>,
-        #[template_child] pub result_page: TemplateChild<adw::StatusPage>,
-        #[template_child] pub result_drives: TemplateChild<adw::PreferencesGroup>,
-        #[template_child] pub result_actions: TemplateChild<gtk::Box>,
-        #[template_child] pub result_details_row: TemplateChild<adw::ExpanderRow>,
+        #[template_child]
+        pub toasts: TemplateChild<adw::ToastOverlay>,
+        #[template_child]
+        pub window_title: TemplateChild<adw::WindowTitle>,
+        #[template_child]
+        pub menu_button: TemplateChild<gtk::MenuButton>,
+        #[template_child]
+        pub stack: TemplateChild<adw::ViewStack>,
+        #[template_child]
+        pub banner: TemplateChild<adw::Banner>,
+        #[template_child]
+        pub source_path: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub change_folder: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub aviation_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub aviation_cycle: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub aviation_menu: TemplateChild<gtk::MenuButton>,
+        #[template_child]
+        pub obstacle_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub obstacle_cycle: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub obstacle_menu: TemplateChild<gtk::MenuButton>,
+        #[template_child]
+        pub plates_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub plates_cycle: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub plates_menu: TemplateChild<gtk::MenuButton>,
+        #[template_child]
+        pub plates_spinner: TemplateChild<adw::Spinner>,
+        #[template_child]
+        pub choose_folder: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub rescan: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub drives_stack: TemplateChild<gtk::Stack>,
+        #[template_child]
+        pub drive_flow: TemplateChild<gtk::FlowBox>,
+        #[template_child]
+        pub drives_empty: TemplateChild<adw::StatusPage>,
+        #[template_child]
+        pub drives_empty_actions: TemplateChild<gtk::Box>,
+        #[template_child]
+        pub update_button: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub reason_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub percent_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub progress: TemplateChild<gtk::ProgressBar>,
+        #[template_child]
+        pub step_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub detail_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub eta_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub running_drives: TemplateChild<adw::PreferencesGroup>,
+        #[template_child]
+        pub details_row: TemplateChild<adw::ExpanderRow>,
+        #[template_child]
+        pub cancel_button: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub result_page: TemplateChild<adw::StatusPage>,
+        #[template_child]
+        pub result_drives: TemplateChild<adw::PreferencesGroup>,
+        #[template_child]
+        pub result_actions: TemplateChild<gtk::Box>,
+        #[template_child]
+        pub result_details_row: TemplateChild<adw::ExpanderRow>,
 
         pub(crate) sources: RefCell<Sources>,
         pub(crate) cards: RefCell<Vec<Card>>,
+        pub result_rows: RefCell<Vec<adw::ActionRow>>,
         pub(crate) run: RefCell<Option<Run>>,
         pub settings: RefCell<Option<gio::Settings>>,
         pub log_list: RefCell<Option<gtk::ListBox>>,
@@ -218,32 +256,41 @@ impl DynonWindow {
         self.build_shortcuts_window();
 
         imp.change_folder.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.choose_source_folder()
         ));
         imp.choose_folder.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.choose_drive_folder()
         ));
         imp.rescan.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.refresh_drives()
         ));
         imp.update_button.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.confirm_update()
         ));
         imp.cancel_button.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.request_stop()
         ));
 
-        imp.aviation_menu.set_menu_model(Some(&database_menu("aviation")));
-        imp.obstacle_menu.set_menu_model(Some(&database_menu("obstacle")));
+        imp.aviation_menu
+            .set_menu_model(Some(&database_menu("aviation")));
+        imp.obstacle_menu
+            .set_menu_model(Some(&database_menu("obstacle")));
         imp.plates_menu.set_menu_model(Some(&plates_menu(false)));
 
         imp.update_button
-            .update_relation(&[gtk::accessible::Relation::DescribedBy(&[imp.reason_label.upcast_ref()])]);
+            .update_relation(&[gtk::accessible::Relation::DescribedBy(&[imp
+                .reason_label
+                .upcast_ref()])]);
 
         let folder = self
             .settings_string("source-folder")
@@ -262,18 +309,71 @@ impl DynonWindow {
         // Live drive detection.
         let monitor = gio::VolumeMonitor::get();
         for signal in ["mount-added", "mount-removed", "mount-changed"] {
-            monitor.connect_local(signal, false, clone!(
-                #[weak(rename_to = win)] self,
-                #[upgrade_or] None,
-                move |_| { win.refresh_drives(); None }
-            ));
+            monitor.connect_local(
+                signal,
+                false,
+                clone!(
+                    #[weak(rename_to = win)]
+                    self,
+                    #[upgrade_or]
+                    None,
+                    move |_| {
+                        win.refresh_drives();
+                        None
+                    }
+                ),
+            );
         }
         self.refresh_drives();
+        self.maybe_start_demo();
+    }
+
+    /// Screenshot/demo hook only — never active in a normal launch. Setting
+    /// `DYNON_AUTO_RUN` skips straight from the ready state to a real run
+    /// (bypassing D1) after a short delay, so `screenshots/capture.sh` can
+    /// produce the running/result states deterministically without needing
+    /// to drive real clicks through whatever windowing setup is capturing
+    /// it. `DYNON_TEST_DRIVE_ROOTS` (see `drive::enumerate`) still governs
+    /// which drives are involved, so this never touches real hardware.
+    fn maybe_start_demo(&self) {
+        if std::env::var_os("DYNON_AUTO_RUN").is_none() {
+            return;
+        }
+        // Refuse to auto-run against anything but fixture drives. Without this
+        // gate, setting DYNON_AUTO_RUN alone would start an unconfirmed,
+        // destructive run against whatever real drives happen to be plugged in,
+        // because recognised drives are pre-selected by design.
+        if std::env::var_os("DYNON_TEST_DRIVE_ROOTS").is_none() {
+            eprintln!(
+                "DYNON_AUTO_RUN ignored: it only runs against DYNON_TEST_DRIVE_ROOTS fixtures, \
+                 never real drives."
+            );
+            return;
+        }
+        glib::timeout_add_local(
+            Duration::from_millis(1500),
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    let selected = win.selected();
+                    if !selected.is_empty() {
+                        win.begin_run(selected);
+                    }
+                    glib::ControlFlow::Break
+                }
+            ),
+        );
     }
 
     fn install_actions(&self) {
         let entries = [
-            ("choose-folder", DynonWindow::choose_source_folder as fn(&DynonWindow)),
+            (
+                "choose-folder",
+                DynonWindow::choose_source_folder as fn(&DynonWindow),
+            ),
             ("choose-archive", DynonWindow::choose_archive),
             ("choose-drive-folder", DynonWindow::choose_drive_folder),
             ("rescan", DynonWindow::refresh_drives),
@@ -290,36 +390,44 @@ impl DynonWindow {
         for (name, handler) in entries {
             let action = gio::SimpleAction::new(name, None);
             action.connect_activate(clone!(
-                #[weak(rename_to = win)] self,
+                #[weak(rename_to = win)]
+                self,
                 move |_, _| handler(&win)
             ));
             self.add_action(&action);
         }
-        for (name, kind) in [("skip-aviation", DupKind::Aviation), ("skip-obstacle", DupKind::Obstacle)] {
+        for (name, kind) in [
+            ("skip-aviation", DupKind::Aviation),
+            ("skip-obstacle", DupKind::Obstacle),
+        ] {
             let action = gio::SimpleAction::new(name, None);
             action.connect_activate(clone!(
-                #[weak(rename_to = win)] self,
+                #[weak(rename_to = win)]
+                self,
                 move |_, _| win.skip_database(kind)
             ));
             self.add_action(&action);
         }
         let clear = gio::SimpleAction::new("clear-archive", None);
         clear.connect_activate(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_, _| win.clear_archive()
         ));
         self.add_action(&clear);
 
         let preview = gio::SimpleAction::new("preview-archive", None);
         preview.connect_activate(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_, _| win.show_archive_preview()
         ));
         self.add_action(&preview);
 
         let show_in_files = gio::SimpleAction::new("show-in-files", Some(glib::VariantTy::STRING));
         show_in_files.connect_activate(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_, param| {
                 if let Some(kind) = param.and_then(|v| v.str().map(str::to_string)) {
                     win.show_source_in_files(&kind);
@@ -330,10 +438,18 @@ impl DynonWindow {
 
         let toggle_drive = gio::SimpleAction::new("toggle-drive", Some(glib::VariantTy::STRING));
         toggle_drive.connect_activate(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_, param| {
                 if let Some(key) = param.and_then(|v| v.str().map(str::to_string)) {
-                    if let Some(toggle) = win.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.toggle.clone()) {
+                    if let Some(toggle) = win
+                        .imp()
+                        .cards
+                        .borrow()
+                        .iter()
+                        .find(|c| c.drive.key() == key)
+                        .map(|c| c.toggle.clone())
+                    {
                         toggle.set_active(!toggle.is_active());
                     }
                 }
@@ -341,9 +457,11 @@ impl DynonWindow {
         ));
         self.add_action(&toggle_drive);
 
-        let show_drive_in_files = gio::SimpleAction::new("show-drive-in-files", Some(glib::VariantTy::STRING));
+        let show_drive_in_files =
+            gio::SimpleAction::new("show-drive-in-files", Some(glib::VariantTy::STRING));
         show_drive_in_files.connect_activate(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_, param| {
                 if let Some(key) = param.and_then(|v| v.str().map(str::to_string)) {
                     win.show_drive_in_files(&key);
@@ -352,9 +470,11 @@ impl DynonWindow {
         ));
         self.add_action(&show_drive_in_files);
 
-        let choose_again = gio::SimpleAction::new("choose-drive-again", Some(glib::VariantTy::STRING));
+        let choose_again =
+            gio::SimpleAction::new("choose-drive-again", Some(glib::VariantTy::STRING));
         choose_again.connect_activate(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_, param| {
                 if let Some(path) = param.and_then(|v| v.str().map(str::to_string)) {
                     win.choose_folder_again(&path);
@@ -363,9 +483,11 @@ impl DynonWindow {
         ));
         self.add_action(&choose_again);
 
-        let remove_target = gio::SimpleAction::new("remove-drive-target", Some(glib::VariantTy::STRING));
+        let remove_target =
+            gio::SimpleAction::new("remove-drive-target", Some(glib::VariantTy::STRING));
         remove_target.connect_activate(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_, param| {
                 if let Some(path) = param.and_then(|v| v.str().map(str::to_string)) {
                     win.remove_drive_target(&path);
@@ -405,16 +527,21 @@ impl DynonWindow {
         if let Some(current) = self.imp().sources.borrow().folder.clone() {
             dialog.set_initial_folder(Some(&gio::File::for_path(current)));
         }
-        dialog.select_folder(Some(self), gio::Cancellable::NONE, clone!(
-            #[weak(rename_to = win)] self,
-            move |result| {
-                if let Ok(file) = result {
-                    if let Some(path) = file.path() {
-                        win.load_folder(&path);
+        dialog.select_folder(
+            Some(self),
+            gio::Cancellable::NONE,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
+                        if let Some(path) = file.path() {
+                            win.load_folder(&path);
+                        }
                     }
                 }
-            }
-        ));
+            ),
+        );
     }
 
     fn load_folder(&self, folder: &std::path::Path) {
@@ -431,7 +558,8 @@ impl DynonWindow {
         }
         self.save("source-folder", folder.to_string_lossy().to_string());
         imp.source_path.set_text(&abbreviate(folder));
-        imp.source_path.set_tooltip_text(Some(&folder.to_string_lossy()));
+        imp.source_path
+            .set_tooltip_text(Some(&folder.to_string_lossy()));
         self.refresh_sources();
     }
 
@@ -455,16 +583,21 @@ impl DynonWindow {
         if let Some(folder) = self.imp().sources.borrow().folder.clone() {
             dialog.set_initial_folder(Some(&gio::File::for_path(folder)));
         }
-        dialog.open(Some(self), gio::Cancellable::NONE, clone!(
-            #[weak(rename_to = win)] self,
-            move |result| {
-                if let Ok(file) = result {
-                    if let Some(path) = file.path() {
-                        win.load_archive(&path);
+        dialog.open(
+            Some(self),
+            gio::Cancellable::NONE,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
+                        if let Some(path) = file.path() {
+                            win.load_archive(&path);
+                        }
                     }
                 }
-            }
-        ));
+            ),
+        );
     }
 
     /// Reading a 23,000-entry central directory belongs off the main loop.
@@ -472,8 +605,13 @@ impl DynonWindow {
         let imp = self.imp();
         imp.plates_spinner.set_visible(true);
         imp.plates_cycle.set_text("");
-        let file_name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
-        imp.plates_row.set_subtitle(&format!("Reading {file_name}…"));
+        let file_name = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
+        imp.plates_row
+            .set_subtitle(&format!("Reading {file_name}…"));
         imp.sources.borrow_mut().archive_loading = Some(file_name);
 
         let (tx, rx) = channel();
@@ -483,40 +621,45 @@ impl DynonWindow {
         });
 
         let path = path.to_path_buf();
-        glib::timeout_add_local(Duration::from_millis(60), clone!(
-            #[weak(rename_to = win)] self,
-            #[upgrade_or] glib::ControlFlow::Break,
-            move || {
-                match rx.try_recv() {
-                    Ok(result) => {
-                        let imp = win.imp();
-                        imp.plates_spinner.set_visible(false);
-                        {
-                            let mut sources = imp.sources.borrow_mut();
-                            sources.archive_loading = None;
-                            match result {
-                                Ok(archive) => {
-                                    sources.strip_wrapper = false;
-                                    sources.archive = Some(archive);
-                                    sources.archive_error = None;
-                                    sources.archive_error_path = None;
-                                }
-                                Err(message) => {
-                                    sources.archive = None;
-                                    sources.archive_error = Some(message);
-                                    sources.archive_error_path = Some(path.clone());
+        glib::timeout_add_local(
+            Duration::from_millis(60),
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    match rx.try_recv() {
+                        Ok(result) => {
+                            let imp = win.imp();
+                            imp.plates_spinner.set_visible(false);
+                            {
+                                let mut sources = imp.sources.borrow_mut();
+                                sources.archive_loading = None;
+                                match result {
+                                    Ok(archive) => {
+                                        sources.strip_wrapper = false;
+                                        sources.archive = Some(archive);
+                                        sources.archive_error = None;
+                                        sources.archive_error_path = None;
+                                    }
+                                    Err(message) => {
+                                        sources.archive = None;
+                                        sources.archive_error = Some(message);
+                                        sources.archive_error_path = Some(path.clone());
+                                    }
                                 }
                             }
+                            win.save("plates-archive", path.to_string_lossy().to_string());
+                            win.refresh_sources();
+                            glib::ControlFlow::Break
                         }
-                        win.save("plates-archive", path.to_string_lossy().to_string());
-                        win.refresh_sources();
-                        glib::ControlFlow::Break
+                        Err(std::sync::mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
+                        Err(_) => glib::ControlFlow::Break,
                     }
-                    Err(std::sync::mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
-                    Err(_) => glib::ControlFlow::Break,
                 }
-            }
-        ));
+            ),
+        );
     }
 
     fn clear_archive(&self) {
@@ -557,17 +700,37 @@ impl DynonWindow {
             .unwrap_or_else(|| "no folder".into());
 
         for (kind, row, badge, chosen, skipped) in [
-            (DupKind::Aviation, &imp.aviation_row, &imp.aviation_cycle, &sources.aviation, sources.skip_aviation),
-            (DupKind::Obstacle, &imp.obstacle_row, &imp.obstacle_cycle, &sources.obstacle, sources.skip_obstacle),
+            (
+                DupKind::Aviation,
+                &imp.aviation_row,
+                &imp.aviation_cycle,
+                &sources.aviation,
+                sources.skip_aviation,
+            ),
+            (
+                DupKind::Obstacle,
+                &imp.obstacle_row,
+                &imp.obstacle_cycle,
+                &sources.obstacle,
+                sources.skip_obstacle,
+            ),
         ] {
-            let label = if kind == DupKind::Aviation { "aviation" } else { "obstacle" };
+            let label = if kind == DupKind::Aviation {
+                "aviation"
+            } else {
+                "obstacle"
+            };
             badge.remove_css_class("dimmed");
             badge.add_css_class("accent");
             match chosen {
                 Some(path) => {
                     let dup = sources.dups.iter().find(|d| &d.path == path);
                     let cycle = dup.and_then(|d| d.cycle);
-                    badge.set_text(&cycle.map(|c| format!("Cycle {c}")).unwrap_or_else(|| "Found".into()));
+                    badge.set_text(
+                        &cycle
+                            .map(|c| format!("Cycle {c}"))
+                            .unwrap_or_else(|| "Found".into()),
+                    );
                     row.set_subtitle(&format!(
                         "{} · {}",
                         path.file_name().unwrap_or_default().to_string_lossy(),
@@ -592,11 +755,16 @@ impl DynonWindow {
         imp.plates_cycle.remove_css_class("dimmed");
         imp.plates_cycle.remove_css_class("error");
         imp.plates_cycle.add_css_class("accent");
-        imp.plates_menu.set_menu_model(Some(&plates_menu(sources.archive.is_some())));
+        imp.plates_menu
+            .set_menu_model(Some(&plates_menu(sources.archive.is_some())));
         match (&sources.archive, &sources.archive_error) {
             (Some(archive), _) => {
-                imp.plates_cycle
-                    .set_text(&archive.cycle.map(|c| format!("Cycle {c}")).unwrap_or_default());
+                imp.plates_cycle.set_text(
+                    &archive
+                        .cycle
+                        .map(|c| format!("Cycle {c}"))
+                        .unwrap_or_default(),
+                );
                 let mut subtitle = format!(
                     "{} · {} files · {}",
                     archive.name(),
@@ -612,7 +780,8 @@ impl DynonWindow {
                 imp.plates_cycle.remove_css_class("accent");
                 imp.plates_cycle.add_css_class("error");
                 imp.plates_cycle.set_text("Can't read");
-                imp.plates_row.set_subtitle("This file is not a readable plates archive");
+                imp.plates_row
+                    .set_subtitle("This file is not a readable plates archive");
             }
             (None, None) => {
                 imp.plates_cycle.remove_css_class("accent");
@@ -651,7 +820,10 @@ fn load_settings() -> Option<gio::Settings> {
 fn main_menu() -> gio::Menu {
     let menu = gio::Menu::new();
     let drives = gio::Menu::new();
-    drives.append(Some("Choose Drive Folder…"), Some("win.choose-drive-folder"));
+    drives.append(
+        Some("Choose Drive Folder…"),
+        Some("win.choose-drive-folder"),
+    );
     drives.append(Some("Rescan Drives"), Some("win.rescan"));
     menu.append_section(None, &drives);
     let general = gio::Menu::new();
@@ -678,7 +850,10 @@ fn database_menu(kind: &str) -> gio::Menu {
 fn plates_menu(has_archive: bool) -> gio::Menu {
     let menu = gio::Menu::new();
     if has_archive {
-        menu.append(Some("Choose a Different Archive…"), Some("win.choose-archive"));
+        menu.append(
+            Some("Choose a Different Archive…"),
+            Some("win.choose-archive"),
+        );
         menu.append(Some("Preview Contents…"), Some("win.preview-archive"));
         menu.append(Some("Do Not Replace Plates"), Some("win.clear-archive"));
         let show = gio::Menu::new();
@@ -698,7 +873,10 @@ fn plates_menu(has_archive: bool) -> gio::Menu {
 
 impl DynonWindow {
     fn choose_drive_folder(&self) {
-        let dialog = gtk::FileDialog::builder().title("Select your drive").modal(true).build();
+        let dialog = gtk::FileDialog::builder()
+            .title("Select your drive")
+            .modal(true)
+            .build();
         let user = std::env::var("USER").unwrap_or_default();
         let start = PathBuf::from(format!("/run/media/{user}"));
         dialog.set_initial_folder(Some(&gio::File::for_path(if start.is_dir() {
@@ -706,24 +884,33 @@ impl DynonWindow {
         } else {
             glib::home_dir()
         })));
-        dialog.select_folder(Some(self), gio::Cancellable::NONE, clone!(
-            #[weak(rename_to = win)] self,
-            move |result| {
-                if let Ok(file) = result {
-                    if let Some(path) = file.path() {
-                        let mut targets = win.manual_targets();
-                        let text = path.to_string_lossy().to_string();
-                        if !targets.contains(&text) {
-                            targets.push(text);
-                            win.save_manual_targets(&targets);
+        dialog.select_folder(
+            Some(self),
+            gio::Cancellable::NONE,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
+                        if let Some(path) = file.path() {
+                            let mut targets = win.manual_targets();
+                            let text = path.to_string_lossy().to_string();
+                            if !targets.contains(&text) {
+                                targets.push(text);
+                                win.save_manual_targets(&targets);
+                            }
+                            let name = path
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string();
+                            win.toast(&format!("{name} added"));
+                            win.refresh_drives();
                         }
-                        let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-                        win.toast(&format!("{name} added"));
-                        win.refresh_drives();
                     }
                 }
-            }
-        ));
+            ),
+        );
     }
 
     fn manual_targets(&self) -> Vec<String> {
@@ -731,7 +918,12 @@ impl DynonWindow {
             .settings
             .borrow()
             .as_ref()
-            .map(|s| s.strv("manual-targets").iter().map(|s| s.to_string()).collect())
+            .map(|s| {
+                s.strv("manual-targets")
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -747,7 +939,12 @@ impl DynonWindow {
             .settings
             .borrow()
             .as_ref()
-            .map(|s| s.strv("selected-drives").iter().map(|s| s.to_string()).collect())
+            .map(|s| {
+                s.strv("selected-drives")
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -814,49 +1011,56 @@ impl DynonWindow {
             }
         });
 
-        glib::timeout_add_local(Duration::from_millis(150), clone!(
-            #[weak(rename_to = win)] self,
-            #[upgrade_or] glib::ControlFlow::Break,
-            move || {
-                if win.imp().scan_generation.get() != generation {
-                    return glib::ControlFlow::Break;
-                }
-                let mut any = false;
-                let mut exhausted = false;
-                loop {
-                    match rx.try_recv() {
-                        Ok((key, measured)) => {
-                            any = true;
-                            let needed = win.bytes_needed();
-                            let target_cycle = win.imp().sources.borrow().cycle();
-                            let mut cards = win.imp().cards.borrow_mut();
-                            if let Some(card) = cards.iter_mut().find(|c| c.drive.key() == key) {
-                                card.drive.reclaimable = Some(measured);
-                                win.paint_card(card, needed, target_cycle);
+        glib::timeout_add_local(
+            Duration::from_millis(150),
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    if win.imp().scan_generation.get() != generation {
+                        return glib::ControlFlow::Break;
+                    }
+                    let mut any = false;
+                    let mut exhausted = false;
+                    loop {
+                        match rx.try_recv() {
+                            Ok((key, measured)) => {
+                                any = true;
+                                let needed = win.bytes_needed();
+                                let target_cycle = win.imp().sources.borrow().cycle();
+                                let mut cards = win.imp().cards.borrow_mut();
+                                if let Some(card) = cards.iter_mut().find(|c| c.drive.key() == key)
+                                {
+                                    card.drive.reclaimable = Some(measured);
+                                    win.paint_card(card, needed, target_cycle);
+                                }
+                            }
+                            Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                                exhausted = true;
+                                break;
                             }
                         }
-                        Err(std::sync::mpsc::TryRecvError::Empty) => break,
-                        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                            exhausted = true;
-                            break;
-                        }
+                    }
+                    if any {
+                        win.update_ready();
+                    }
+                    if exhausted {
+                        glib::ControlFlow::Break
+                    } else {
+                        glib::ControlFlow::Continue
                     }
                 }
-                if any {
-                    win.update_ready();
-                }
-                if exhausted {
-                    glib::ControlFlow::Break
-                } else {
-                    glib::ControlFlow::Continue
-                }
-            }
-        ));
+            ),
+        );
     }
 
     fn rebuild_cards(&self, drives: Vec<Drive>, previously_checked: &[String]) {
         let imp = self.imp();
         while let Some(child) = imp.drive_flow.first_child() {
+            eprintln!("DIAG: drive_flow.remove");
             imp.drive_flow.remove(&child);
         }
         imp.cards.borrow_mut().clear();
@@ -874,7 +1078,8 @@ impl DynonWindow {
         for drive in drives {
             let card = self.build_card(&drive, needed, target_cycle);
             let key = drive.key();
-            let ready = drive.recognised() && drive.writable && drive.fits(needed) && drive.reachable;
+            let ready =
+                drive.recognised() && drive.writable && drive.fits(needed) && drive.reachable;
             let up_to_date = target_cycle.is_some() && drive.installed_cycle == target_cycle;
             let checked = if previously_checked.is_empty() {
                 // Safe default: only a recognised, writable, roomy drive that is
@@ -899,7 +1104,10 @@ impl DynonWindow {
         let content = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .spacing(6)
-            .margin_top(12).margin_bottom(12).margin_start(12).margin_end(12)
+            .margin_top(12)
+            .margin_bottom(12)
+            .margin_start(12)
+            .margin_end(12)
             .build();
 
         let top = gtk::Box::builder().spacing(6).build();
@@ -927,13 +1135,19 @@ impl DynonWindow {
             .css_classes(["title-4"])
             .build();
 
-        let cycle_label = gtk::Label::builder().xalign(0.0).css_classes(["caption"]).build();
+        let cycle_label = gtk::Label::builder()
+            .xalign(0.0)
+            .css_classes(["caption"])
+            .build();
         let verdict_label = gtk::Label::builder()
             .xalign(0.0)
             .wrap(true)
             .css_classes(["caption"])
             .build();
-        let level = gtk::LevelBar::builder().height_request(6).hexpand(true).build();
+        let level = gtk::LevelBar::builder()
+            .height_request(6)
+            .hexpand(true)
+            .build();
         level.add_offset_value("high", 0.90);
         level.add_offset_value("full", 1.0);
 
@@ -946,8 +1160,10 @@ impl DynonWindow {
         toggle.set_tooltip_text(Some(&drive.path.to_string_lossy()));
 
         toggle.connect_toggled(clone!(
-            #[weak(rename_to = win)] self,
-            #[weak] tick,
+            #[weak(rename_to = win)]
+            self,
+            #[weak]
+            tick,
             move |t| {
                 tick.set_visible(t.is_active());
                 win.update_ready();
@@ -960,22 +1176,30 @@ impl DynonWindow {
         let right_click = gtk::GestureClick::new();
         right_click.set_button(3);
         right_click.connect_pressed(clone!(
-            #[weak(rename_to = win)] self,
-            #[weak] toggle,
-            #[strong] key,
+            #[weak(rename_to = win)]
+            self,
+            #[weak]
+            toggle,
+            #[strong]
+            key,
             move |_, _, x, y| win.show_card_menu(&toggle, &key, x, y)
         ));
         toggle.add_controller(right_click);
 
         let key_controller = gtk::EventControllerKey::new();
         key_controller.connect_key_pressed(clone!(
-            #[weak(rename_to = win)] self,
-            #[weak] toggle,
-            #[strong] key,
-            #[upgrade_or] glib::Propagation::Proceed,
+            #[weak(rename_to = win)]
+            self,
+            #[weak]
+            toggle,
+            #[strong]
+            key,
+            #[upgrade_or]
+            glib::Propagation::Proceed,
             move |_, keyval, _, state| {
                 let is_menu = keyval == gtk::gdk::Key::Menu;
-                let is_shift_f10 = keyval == gtk::gdk::Key::F10 && state.contains(gtk::gdk::ModifierType::SHIFT_MASK);
+                let is_shift_f10 = keyval == gtk::gdk::Key::F10
+                    && state.contains(gtk::gdk::ModifierType::SHIFT_MASK);
                 if is_menu || is_shift_f10 {
                     win.show_card_menu(&toggle, &key, 0.0, 0.0);
                     glib::Propagation::Stop
@@ -986,7 +1210,13 @@ impl DynonWindow {
         ));
         toggle.add_controller(key_controller);
 
-        let card = Card { drive: drive.clone(), toggle, cycle_label, verdict_label, level };
+        let card = Card {
+            drive: drive.clone(),
+            toggle,
+            cycle_label,
+            verdict_label,
+            level,
+        };
         self.paint_card(&card, needed, target_cycle);
         card
     }
@@ -1005,7 +1235,8 @@ impl DynonWindow {
         let reclaim = drive.reclaimable.map(|(b, _)| b).unwrap_or(0);
         let available = drive.free.saturating_add(reclaim);
         let projected = if drive.total > 0 {
-            ((drive.total.saturating_sub(available)).saturating_add(needed)) as f64 / drive.total as f64
+            ((drive.total.saturating_sub(available)).saturating_add(needed)) as f64
+                / drive.total as f64
         } else {
             0.0
         };
@@ -1032,7 +1263,11 @@ impl DynonWindow {
         } else if !drive.recognised() {
             cycle.set_text("Not a SkyView drive");
             cycle.add_css_class("warning");
-            verdict.set_text(&format!("{} free · {} total", job::size(drive.free), job::size(drive.total)));
+            verdict.set_text(&format!(
+                "{} free · {} total",
+                job::size(drive.free),
+                job::size(drive.total)
+            ));
             verdict.add_css_class("dimmed");
         } else {
             match (drive.installed_cycle, target_cycle) {
@@ -1076,12 +1311,13 @@ impl DynonWindow {
             verdict.add_css_class("warning");
         }
 
-        card.toggle.update_property(&[gtk::accessible::Property::Label(&format!(
-            "{}, {}, {}",
-            drive.name,
-            cycle.text(),
-            verdict.text()
-        ))]);
+        card.toggle
+            .update_property(&[gtk::accessible::Property::Label(&format!(
+                "{}, {}, {}",
+                drive.name,
+                cycle.text(),
+                verdict.text()
+            ))]);
     }
 
     /// Some(drive_serial) when the drive's chart key names a different SkyView.
@@ -1101,6 +1337,7 @@ impl DynonWindow {
         let imp = self.imp();
         imp.drives_stack.set_visible_child_name("empty");
         while let Some(child) = imp.drives_empty_actions.first_child() {
+            eprintln!("DIAG: drives_empty_actions.remove");
             imp.drives_empty_actions.remove(&child);
         }
 
@@ -1132,18 +1369,27 @@ impl DynonWindow {
 
         let choose = gtk::Button::builder()
             .label("Choose Folder…")
-            .css_classes(if show_help { vec!["pill", "suggested-action"] } else { vec!["pill"] })
+            .css_classes(if show_help {
+                vec!["pill", "suggested-action"]
+            } else {
+                vec!["pill"]
+            })
             .build();
         choose.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.choose_drive_folder()
         ));
         imp.drives_empty_actions.append(&choose);
 
         if show_help {
-            let help = gtk::Button::builder().label("How to Fix This…").css_classes(["pill"]).build();
+            let help = gtk::Button::builder()
+                .label("How to Fix This…")
+                .css_classes(["pill"])
+                .build();
             help.connect_clicked(clone!(
-                #[weak(rename_to = win)] self,
+                #[weak(rename_to = win)]
+                self,
                 move |_| win.show_sandbox_help()
             ));
             imp.drives_empty_actions.append(&help);
@@ -1232,7 +1478,9 @@ impl DynonWindow {
         let reason: Option<String> = if folder_missing {
             Some("Choose a folder that contains this cycle's files".into())
         } else if dups_empty {
-            Some(format!("No aviation or obstacle database found in {folder_label}"))
+            Some(format!(
+                "No aviation or obstacle database found in {folder_label}"
+            ))
         } else if nothing_to_copy {
             Some("Choose at least one database or a plates archive to copy".into())
         } else if let Some(name) = loading {
@@ -1242,9 +1490,17 @@ impl DynonWindow {
         } else if selected.is_empty() {
             Some("Select a drive to continue".into())
         } else if let Some(d) = bad_selected {
-            Some(format!("{} can't be written to — deselect it to continue", d.name))
+            Some(format!(
+                "{} can't be written to — deselect it to continue",
+                d.name
+            ))
         } else {
-            full_selected.map(|d| format!("{} doesn't have room for this update — deselect it to continue", d.name))
+            full_selected.map(|d| {
+                format!(
+                    "{} doesn't have room for this update — deselect it to continue",
+                    d.name
+                )
+            })
         };
 
         let label = match selected.len() {
@@ -1272,7 +1528,10 @@ impl DynonWindow {
                 imp.update_button.set_sensitive(true);
                 let drive_list = drive_list_text(&selected);
                 let duration = duration_text(estimate_seconds(needed));
-                let mut summary = format!("Writes {} to {drive_list} · about {duration}", job::size(needed));
+                let mut summary = format!(
+                    "Writes {} to {drive_list} · about {duration}",
+                    job::size(needed)
+                );
                 if self.preference("verify-copies", true) {
                     summary.push_str(" · copies verified");
                 }
@@ -1297,7 +1556,11 @@ impl DynonWindow {
         let imp = self.imp();
         let sources = imp.sources.borrow();
         let cards = imp.cards.borrow();
-        let folder_label = sources.folder.as_ref().map(|f| abbreviate(f)).unwrap_or_default();
+        let folder_label = sources
+            .folder
+            .as_ref()
+            .map(|f| abbreviate(f))
+            .unwrap_or_default();
         let needed = self.bytes_needed();
 
         let mut picked: Option<(String, Option<(&'static str, BannerAction)>)> = None;
@@ -1306,13 +1569,20 @@ impl DynonWindow {
         if let (Some(err), Some(path)) = (&sources.archive_error, &sources.archive_error_path) {
             if err.contains("unsafe file paths") {
                 let name = path.file_name().unwrap_or_default().to_string_lossy();
-                picked = Some((format!("{name} contains unsafe file paths and will not be used."), None));
+                picked = Some((
+                    format!("{name} contains unsafe file paths and will not be used."),
+                    None,
+                ));
             }
         }
         // E5 / E6: archive unreadable or empty.
         if picked.is_none() {
             if let (Some(_), Some(path)) = (&sources.archive_error, &sources.archive_error_path) {
-                let name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned();
                 picked = Some((
                     format!("{name} could not be read as a plates archive."),
                     Some(("Choose Another…", BannerAction::ChooseArchive)),
@@ -1332,7 +1602,10 @@ impl DynonWindow {
         }
         // E11: selected drive is read-only.
         if picked.is_none() {
-            if let Some(card) = cards.iter().find(|c| c.toggle.is_active() && c.drive.reachable && !c.drive.writable) {
+            if let Some(card) = cards
+                .iter()
+                .find(|c| c.toggle.is_active() && c.drive.reachable && !c.drive.writable)
+            {
                 picked = Some((
                     format!("{} cannot be written to.", card.drive.name),
                     Some(("Deselect", BannerAction::Deselect(card.drive.key()))),
@@ -1341,10 +1614,12 @@ impl DynonWindow {
         }
         // E12: selected drive won't fit.
         if picked.is_none() {
-            if let Some(card) = cards
-                .iter()
-                .find(|c| c.toggle.is_active() && c.drive.reachable && c.drive.writable && !c.drive.fits(needed))
-            {
+            if let Some(card) = cards.iter().find(|c| {
+                c.toggle.is_active()
+                    && c.drive.reachable
+                    && c.drive.writable
+                    && !c.drive.fits(needed)
+            }) {
                 picked = Some((
                     format!("{} does not have room for this update.", card.drive.name),
                     Some(("Deselect", BannerAction::Deselect(card.drive.key()))),
@@ -1353,15 +1628,24 @@ impl DynonWindow {
         }
         // E13: folder target unreachable.
         if picked.is_none() {
-            if let Some(card) = cards.iter().find(|c| c.drive.kind == TargetKind::Folder && !c.drive.reachable) {
+            if let Some(card) = cards
+                .iter()
+                .find(|c| c.drive.kind == TargetKind::Folder && !c.drive.reachable)
+            {
                 picked = Some((
                     format!("{} is not connected.", card.drive.name),
-                    Some(("Choose Again…", BannerAction::ChooseAgain(card.drive.path.to_string_lossy().into_owned()))),
+                    Some((
+                        "Choose Again…",
+                        BannerAction::ChooseAgain(card.drive.path.to_string_lossy().into_owned()),
+                    )),
                 ));
             }
         }
         // E2: no databases in folder.
-        if picked.is_none() && sources.folder.as_ref().map(|f| f.is_dir()).unwrap_or(false) && sources.dups.is_empty() {
+        if picked.is_none()
+            && sources.folder.as_ref().map(|f| f.is_dir()).unwrap_or(false)
+            && sources.dups.is_empty()
+        {
             picked = Some((
                 format!("No databases found in {folder_label}."),
                 Some(("Choose Folder…", BannerAction::ChooseFolder)),
@@ -1369,7 +1653,10 @@ impl DynonWindow {
         }
         // E15: entitlement mismatch.
         if picked.is_none() {
-            if let Some(card) = cards.iter().find(|c| self.entitlement_mismatch(&c.drive).is_some()) {
+            if let Some(card) = cards
+                .iter()
+                .find(|c| self.entitlement_mismatch(&c.drive).is_some())
+            {
                 picked = Some((
                     format!("{} is registered to a different SkyView.", card.drive.name),
                     Some(("Details", BannerAction::Details(card.drive.key()))),
@@ -1403,7 +1690,10 @@ impl DynonWindow {
         }
         // P10: drives present, none recognised.
         if picked.is_none() && !cards.is_empty() && cards.iter().all(|c| !c.drive.recognised()) {
-            picked = Some(("No SkyView drives found. Select a drive to write to it anyway.".into(), None));
+            picked = Some((
+                "No SkyView drives found. Select a drive to write to it anyway.".into(),
+                None,
+            ));
         }
         // P0: first run.
         if picked.is_none() && !self.preference("first-run-done", false) {
@@ -1423,11 +1713,13 @@ impl DynonWindow {
         match picked {
             Some((title, action)) => {
                 imp.banner.set_title(&title);
-                imp.banner.set_button_label(action.as_ref().map(|(l, _)| *l));
+                imp.banner
+                    .set_button_label(action.as_ref().map(|(l, _)| *l));
                 imp.banner.set_revealed(true);
                 if let Some((_, act)) = action {
                     let handler = imp.banner.connect_button_clicked(clone!(
-                        #[weak(rename_to = win)] self,
+                        #[weak(rename_to = win)]
+                        self,
                         move |_| win.run_banner_action(act.clone())
                     ));
                     imp.banner_handler.replace(Some(handler));
@@ -1445,7 +1737,13 @@ impl DynonWindow {
             BannerAction::ChooseFolder => self.choose_source_folder(),
             BannerAction::ChooseArchive => self.choose_archive(),
             BannerAction::Deselect(key) => {
-                let card = self.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.toggle.clone());
+                let card = self
+                    .imp()
+                    .cards
+                    .borrow()
+                    .iter()
+                    .find(|c| c.drive.key() == key)
+                    .map(|c| c.toggle.clone());
                 if let Some(toggle) = card {
                     toggle.set_active(false);
                 }
@@ -1456,7 +1754,13 @@ impl DynonWindow {
     }
 
     fn show_entitlement_details(&self, key: &str) {
-        let Some(drive) = self.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.drive.clone())
+        let Some(drive) = self
+            .imp()
+            .cards
+            .borrow()
+            .iter()
+            .find(|c| c.drive.key() == key)
+            .map(|c| c.drive.clone())
         else {
             return;
         };
@@ -1487,41 +1791,53 @@ impl DynonWindow {
         dialog.add_response("use-anyway", "Use It Anyway");
         dialog.set_response_appearance("deselect", adw::ResponseAppearance::Suggested);
         let key = key.to_string();
-        dialog.connect_response(None, clone!(
-            #[weak(rename_to = win)] self,
-            move |_, response| {
-                if response == "deselect" {
-                    win.run_banner_action(BannerAction::Deselect(key.clone()));
+        dialog.connect_response(
+            None,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |_, response| {
+                    if response == "deselect" {
+                        win.run_banner_action(BannerAction::Deselect(key.clone()));
+                    }
                 }
-            }
-        ));
+            ),
+        );
         dialog.present(Some(self));
     }
 
     fn choose_folder_again(&self, old_path: &str) {
-        let dialog = gtk::FileDialog::builder().title("Select your drive").modal(true).build();
+        let dialog = gtk::FileDialog::builder()
+            .title("Select your drive")
+            .modal(true)
+            .build();
         let old = PathBuf::from(old_path);
         if let Some(parent) = old.parent().filter(|p| p.is_dir()) {
             dialog.set_initial_folder(Some(&gio::File::for_path(parent)));
         }
         let old_path = old_path.to_string();
-        dialog.select_folder(Some(self), gio::Cancellable::NONE, clone!(
-            #[weak(rename_to = win)] self,
-            move |result| {
-                if let Ok(file) = result {
-                    if let Some(path) = file.path() {
-                        let mut targets = win.manual_targets();
-                        targets.retain(|p| p != &old_path);
-                        let text = path.to_string_lossy().to_string();
-                        if !targets.contains(&text) {
-                            targets.push(text);
+        dialog.select_folder(
+            Some(self),
+            gio::Cancellable::NONE,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
+                        if let Some(path) = file.path() {
+                            let mut targets = win.manual_targets();
+                            targets.retain(|p| p != &old_path);
+                            let text = path.to_string_lossy().to_string();
+                            if !targets.contains(&text) {
+                                targets.push(text);
+                            }
+                            win.save_manual_targets(&targets);
+                            win.refresh_drives();
                         }
-                        win.save_manual_targets(&targets);
-                        win.refresh_drives();
                     }
                 }
-            }
-        ));
+            ),
+        );
     }
 
     fn confirm_update(&self) {
@@ -1535,14 +1851,25 @@ impl DynonWindow {
             let sources = imp.sources.borrow();
             (
                 sources.archive.is_some(),
-                sources.archive.as_ref().map(|a| a.name()).unwrap_or_default(),
-                sources.archive.as_ref().map(|a| a.members_stripped(sources.strip_wrapper).len()).unwrap_or(0),
+                sources
+                    .archive
+                    .as_ref()
+                    .map(|a| a.name())
+                    .unwrap_or_default(),
+                sources
+                    .archive
+                    .as_ref()
+                    .map(|a| a.members_stripped(sources.strip_wrapper).len())
+                    .unwrap_or(0),
             )
         };
         let drive_list = drive_list_text(&selected);
         let db_count = {
             let sources = imp.sources.borrow();
-            [sources.aviation.is_some(), sources.obstacle.is_some()].iter().filter(|b| **b).count()
+            [sources.aviation.is_some(), sources.obstacle.is_some()]
+                .iter()
+                .filter(|b| **b)
+                .count()
         };
 
         let heading = if has_archive {
@@ -1571,7 +1898,10 @@ impl DynonWindow {
         for drive in &selected {
             let mut parts = Vec::new();
             if db_count > 0 {
-                parts.push(format!("Copy {db_count} database{}", if db_count == 1 { "" } else { "s" }));
+                parts.push(format!(
+                    "Copy {db_count} database{}",
+                    if db_count == 1 { "" } else { "s" }
+                ));
             }
             if has_archive {
                 let existing = drive.reclaimable.map(|(_, n)| n).unwrap_or(0);
@@ -1583,7 +1913,10 @@ impl DynonWindow {
                 subtitle = format!("Not a SkyView drive · {subtitle}");
                 unrecognised_names.push(drive.name.clone());
             }
-            let row = adw::ActionRow::builder().title(&drive.name).subtitle(&subtitle).build();
+            let row = adw::ActionRow::builder()
+                .title(&drive.name)
+                .subtitle(&subtitle)
+                .build();
             let icon = gtk::Image::from_icon_name(match drive.kind {
                 TargetKind::Folder => "folder-symbolic",
                 TargetKind::Mounted => "drive-harddisk-usb-symbolic",
@@ -1593,14 +1926,23 @@ impl DynonWindow {
             group.add(&row);
         }
 
-        let extra = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(12).build();
+        let extra = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(12)
+            .build();
         extra.append(&group);
 
         let checkbox = if !unrecognised_names.is_empty() {
             let label = if unrecognised_names.len() == 1 {
-                format!("I understand that {} is not a SkyView drive", unrecognised_names[0])
+                format!(
+                    "I understand that {} is not a SkyView drive",
+                    unrecognised_names[0]
+                )
             } else {
-                format!("I understand that {} of these are not SkyView drives", unrecognised_names.len())
+                format!(
+                    "I understand that {} of these are not SkyView drives",
+                    unrecognised_names.len()
+                )
             };
             let check = gtk::CheckButton::builder().label(label).build();
             extra.append(&check);
@@ -1629,19 +1971,24 @@ impl DynonWindow {
         }
         if let Some(check) = &checkbox {
             check.connect_toggled(clone!(
-                #[weak] dialog,
+                #[weak]
+                dialog,
                 move |c| dialog.set_response_enabled("update", c.is_active())
             ));
         }
 
-        dialog.connect_response(None, clone!(
-            #[weak(rename_to = win)] self,
-            move |_, response| {
-                if response == "update" {
-                    win.begin_run(selected.clone());
+        dialog.connect_response(
+            None,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |_, response| {
+                    if response == "update" {
+                        win.begin_run(selected.clone());
+                    }
                 }
-            }
-        ));
+            ),
+        );
         dialog.present(Some(self));
     }
 
@@ -1684,6 +2031,7 @@ impl DynonWindow {
 
         if let Some(old) = imp.run.borrow_mut().take() {
             for (_, row) in old.rows {
+                eprintln!("DIAG: running_drives.remove");
                 imp.running_drives.remove(&row.row);
             }
             if old.inhibit != 0 {
@@ -1704,7 +2052,9 @@ impl DynonWindow {
             .map(|app| {
                 app.inhibit(
                     Some(self),
-                    gtk::ApplicationInhibitFlags::LOGOUT | gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE,
+                    gtk::ApplicationInhibitFlags::LOGOUT
+                        | gtk::ApplicationInhibitFlags::SUSPEND
+                        | gtk::ApplicationInhibitFlags::IDLE,
                     Some("Writing avionics data to USB drives"),
                 )
             })
@@ -1726,18 +2076,24 @@ impl DynonWindow {
         imp.percent_label.set_text("—");
         imp.progress.set_fraction(0.0);
         imp.step_label.set_text("Preparing…");
-        imp.detail_label.set_text(&format!("Checking space on {} drives", drives.len()));
+        imp.detail_label
+            .set_text(&format!("Checking space on {} drives", drives.len()));
         imp.eta_label.set_text("Estimating time left…");
         imp.window_title.set_subtitle("0% — Estimating time left…");
         imp.cancel_button.grab_focus();
 
         std::thread::spawn(move || job::run(plan, tx, cancel));
 
-        glib::timeout_add_local(Duration::from_millis(200), clone!(
-            #[weak(rename_to = win)] self,
-            #[upgrade_or] glib::ControlFlow::Break,
-            move || win.poll_job()
-        ));
+        glib::timeout_add_local(
+            Duration::from_millis(200),
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || win.poll_job()
+            ),
+        );
     }
 
     /// Uninhibits exactly once, on whatever path ends the run.
@@ -1763,12 +2119,24 @@ impl DynonWindow {
             }
         };
 
+        // A fast phase (thousands of tiny plate files) can queue thousands
+        // of Progress events between polls; applying each one individually
+        // was measured to freeze the UI for many seconds on a real-sized
+        // archive; every consumer of Progress only cares about the latest
+        // done/total, so only the last one in a batch is applied. Every
+        // other event type is rare enough (a few dozen Step/DriveState/Log
+        // events per run) to apply as they come.
         let mut finished = None;
+        let mut latest_progress = None;
         for event in events {
             match event {
                 Event::Finished(outcomes) => finished = Some(outcomes),
+                Event::Progress { done, total } => latest_progress = Some((done, total)),
                 other => self.handle_job_event(other),
             }
+        }
+        if let Some((done, total)) = latest_progress {
+            self.handle_job_event(Event::Progress { done, total });
         }
 
         if let Some(outcomes) = finished {
@@ -1788,7 +2156,10 @@ impl DynonWindow {
                 imp.step_label.set_text(&step);
                 let showing_extraction = matches!(
                     imp.run.borrow().as_ref().map(|r| r.current_state),
-                    Some(DriveState::ExtractingPlates) | Some(DriveState::ErasingPlates) | Some(DriveState::Finishing) | None
+                    Some(DriveState::ExtractingPlates)
+                        | Some(DriveState::ErasingPlates)
+                        | Some(DriveState::Finishing)
+                        | None
                 );
                 if showing_extraction || step.starts_with("Preparing") {
                     imp.detail_label.set_text(&detail);
@@ -1808,16 +2179,25 @@ impl DynonWindow {
                 }
             }
             Event::Progress { done, total } => {
-                let percent = if total > 0 { ((done as f64 / total as f64) * 100.0).clamp(0.0, 100.0) } else { 0.0 };
+                let percent = if total > 0 {
+                    ((done as f64 / total as f64) * 100.0).clamp(0.0, 100.0)
+                } else {
+                    0.0
+                };
                 imp.progress.set_fraction((percent / 100.0).clamp(0.0, 1.0));
-                imp.percent_label.set_text(&format!("{}%", percent.round() as u32));
+                imp.percent_label
+                    .set_text(&format!("{}%", percent.round() as u32));
 
                 let db_phase = matches!(
                     imp.run.borrow().as_ref().map(|r| r.current_state),
                     Some(DriveState::CopyingDatabases) | Some(DriveState::CheckingCopies)
                 );
                 if db_phase {
-                    imp.detail_label.set_text(&format!("{} of {}", job::size(done), job::size(total)));
+                    imp.detail_label.set_text(&format!(
+                        "{} of {}",
+                        job::size(done),
+                        job::size(total)
+                    ));
                 }
 
                 let eta = {
@@ -1825,11 +2205,13 @@ impl DynonWindow {
                     let Some(run) = run.as_mut() else { return };
                     let now = Instant::now();
                     run.samples.push((now, done));
-                    run.samples.retain(|(t, _)| now.duration_since(*t) <= Duration::from_secs(30));
+                    run.samples
+                        .retain(|(t, _)| now.duration_since(*t) <= Duration::from_secs(30));
                     eta_for(run, done, total)
                 };
                 imp.eta_label.set_text(&eta);
-                imp.window_title.set_subtitle(&format!("{}% — {eta}", percent.round() as u32));
+                imp.window_title
+                    .set_subtitle(&format!("{}% — {eta}", percent.round() as u32));
 
                 let announce = {
                     let mut run = imp.run.borrow_mut();
@@ -1843,7 +2225,10 @@ impl DynonWindow {
                 };
                 if announce {
                     let step = imp.step_label.text().to_string();
-                    self.announce_progress(&format!("{step}, {} percent, {eta}", percent.round() as u32));
+                    self.announce_progress(&format!(
+                        "{step}, {} percent, {eta}",
+                        percent.round() as u32
+                    ));
                 }
             }
             Event::DriveState { drive, state } => {
@@ -1856,7 +2241,9 @@ impl DynonWindow {
             }
             Event::Log { severity, message } => {
                 let time = time_now();
-                imp.log_entries.borrow_mut().push((severity, time.clone(), message.clone()));
+                imp.log_entries
+                    .borrow_mut()
+                    .push((severity, time.clone(), message.clone()));
                 if let Some(list) = imp.log_list.borrow().as_ref() {
                     list.append(&log_row(severity, &time, &message));
                 }
@@ -1873,7 +2260,9 @@ impl DynonWindow {
     }
 
     fn announce_progress(&self, text: &str) {
-        self.imp().step_label.announce(text, gtk::AccessibleAnnouncementPriority::Medium);
+        self.imp()
+            .step_label
+            .announce(text, gtk::AccessibleAnnouncementPriority::Medium);
     }
 
     fn finish_job(&self, outcomes: Vec<DriveOutcome>) {
@@ -1891,7 +2280,12 @@ impl DynonWindow {
     /// Guarded stop: before the erase, stop immediately; after it, confirm.
     fn request_stop(&self) {
         let imp = self.imp();
-        let past = imp.run.borrow().as_ref().map(|r| r.cancel.past_point_of_no_return()).unwrap_or(false);
+        let past = imp
+            .run
+            .borrow()
+            .as_ref()
+            .map(|r| r.cancel.past_point_of_no_return())
+            .unwrap_or(false);
         if !past {
             if let Some(run) = imp.run.borrow().as_ref() {
                 run.cancel.request();
@@ -1911,16 +2305,20 @@ impl DynonWindow {
         dialog.add_response("keep", "Keep Updating");
         dialog.add_response("stop", "Stop Update");
         dialog.set_response_appearance("stop", adw::ResponseAppearance::Destructive);
-        dialog.connect_response(None, clone!(
-            #[weak(rename_to = win)] self,
-            move |_, response| {
-                if response == "stop" {
-                    if let Some(run) = win.imp().run.borrow().as_ref() {
-                        run.cancel.request();
+        dialog.connect_response(
+            None,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |_, response| {
+                    if response == "stop" {
+                        if let Some(run) = win.imp().run.borrow().as_ref() {
+                            run.cancel.request();
+                        }
                     }
                 }
-            }
-        ));
+            ),
+        );
         dialog.present(Some(self));
     }
 
@@ -1928,7 +2326,12 @@ impl DynonWindow {
     /// dangerous window (R3–R5) exactly like the Cancel button does.
     pub(super) fn guarded_close(&self) -> glib::Propagation {
         let imp = self.imp();
-        let past = imp.run.borrow().as_ref().map(|r| r.cancel.past_point_of_no_return()).unwrap_or(false);
+        let past = imp
+            .run
+            .borrow()
+            .as_ref()
+            .map(|r| r.cancel.past_point_of_no_return())
+            .unwrap_or(false);
         if imp.run.borrow().is_none() {
             self.save_window_state();
             return glib::Propagation::Proceed;
@@ -2033,7 +2436,8 @@ fn apply_drive_state(row: &RunRow, state: DriveState, reason: Option<&str>) {
     );
     row.spinner.set_visible(active);
     row.bar.set_visible(active);
-    row.icon.set_visible(matches!(state, DriveState::Done | DriveState::Failed));
+    row.icon
+        .set_visible(matches!(state, DriveState::Done | DriveState::Failed));
     match state {
         DriveState::Done => {
             row.icon.set_icon_name(Some("emblem-ok-symbolic"));
@@ -2055,7 +2459,10 @@ fn apply_drive_state(row: &RunRow, state: DriveState, reason: Option<&str>) {
     }
     let name = row.row.title();
     row.row
-        .update_property(&[gtk::accessible::Property::Label(&format!("{name}, {}", drive_state_text(state).to_lowercase()))]);
+        .update_property(&[gtk::accessible::Property::Label(&format!(
+            "{name}, {}",
+            drive_state_text(state).to_lowercase()
+        ))]);
 }
 
 fn build_run_row(name: &str) -> RunRow {
@@ -2065,23 +2472,45 @@ fn build_run_row(name: &str) -> RunRow {
     let spinner = adw::Spinner::new();
     spinner.set_visible(false);
     spinner.set_valign(gtk::Align::Center);
-    let state_label = gtk::Label::builder().css_classes(["caption"]).valign(gtk::Align::Center).build();
-    let bar = gtk::ProgressBar::builder().height_request(4).hexpand(true).visible(false).build();
+    let state_label = gtk::Label::builder()
+        .css_classes(["caption"])
+        .valign(gtk::Align::Center)
+        .build();
+    let bar = gtk::ProgressBar::builder()
+        .height_request(4)
+        .hexpand(true)
+        .visible(false)
+        .build();
 
-    let top = gtk::Box::builder().spacing(6).valign(gtk::Align::Center).build();
+    let top = gtk::Box::builder()
+        .spacing(6)
+        .valign(gtk::Align::Center)
+        .build();
     top.append(&state_label);
     top.append(&spinner);
 
-    let suffix = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(2).valign(gtk::Align::Center).build();
+    let suffix = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(2)
+        .valign(gtk::Align::Center)
+        .build();
     suffix.append(&top);
     suffix.append(&bar);
 
     let row = adw::ActionRow::builder().title(name).build();
     row.add_prefix(&icon);
     row.add_suffix(&suffix);
-    row.update_property(&[gtk::accessible::Property::Label(&format!("{name}, waiting"))]);
+    row.update_property(&[gtk::accessible::Property::Label(&format!(
+        "{name}, waiting"
+    ))]);
 
-    RunRow { row, state_label, spinner, bar, icon }
+    RunRow {
+        row,
+        state_label,
+        spinner,
+        bar,
+        icon,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2092,11 +2521,21 @@ impl DynonWindow {
     fn show_result(&self, outcomes: &[DriveOutcome]) {
         let imp = self.imp();
         imp.stack.set_visible_child_name("result");
+        imp.window_title.set_subtitle("");
 
         let total = outcomes.len();
-        let updated: Vec<&DriveOutcome> = outcomes.iter().filter(|o| o.result == Outcome::Updated).collect();
-        let interrupted: Vec<&DriveOutcome> = outcomes.iter().filter(|o| o.result == Outcome::Interrupted).collect();
-        let failed: Vec<&DriveOutcome> = outcomes.iter().filter(|o| matches!(o.result, Outcome::Failed(_))).collect();
+        let updated: Vec<&DriveOutcome> = outcomes
+            .iter()
+            .filter(|o| o.result == Outcome::Updated)
+            .collect();
+        let interrupted: Vec<&DriveOutcome> = outcomes
+            .iter()
+            .filter(|o| o.result == Outcome::Interrupted)
+            .collect();
+        let failed: Vec<&DriveOutcome> = outcomes
+            .iter()
+            .filter(|o| matches!(o.result, Outcome::Failed(_)))
+            .collect();
         let cycle = outcomes.iter().find_map(|o| o.cycle);
 
         let (icon, title, description) = if !interrupted.is_empty() {
@@ -2115,13 +2554,17 @@ impl DynonWindow {
                 (
                     "emblem-ok-symbolic",
                     format!("{} Updated", updated[0].name),
-                    format!("Cycle {cycle_text} is installed. Eject the drive before unplugging it."),
+                    format!(
+                        "Cycle {cycle_text} is installed. Eject the drive before unplugging it."
+                    ),
                 )
             } else {
                 (
                     "emblem-ok-symbolic",
                     format!("{total} Drives Updated"),
-                    format!("Cycle {cycle_text} is installed. Eject the drives before unplugging them."),
+                    format!(
+                        "Cycle {cycle_text} is installed. Eject the drives before unplugging them."
+                    ),
                 )
             }
         } else if updated.is_empty() {
@@ -2131,7 +2574,8 @@ impl DynonWindow {
                 "Nothing was written. Check the reason below.".to_string(),
             )
         } else {
-            let failed_names = drive_names_text(&failed.iter().map(|o| o.name.clone()).collect::<Vec<_>>());
+            let failed_names =
+                drive_names_text(&failed.iter().map(|o| o.name.clone()).collect::<Vec<_>>());
             (
                 "dialog-warning-symbolic",
                 format!("{} of {total} Drives Updated", updated.len()),
@@ -2142,12 +2586,17 @@ impl DynonWindow {
         imp.result_page.set_icon_name(Some(icon));
         imp.result_page.set_title(&title);
         imp.result_page.set_description(Some(&description));
-        imp.result_page.announce(&format!("{title}. {description}"), gtk::AccessibleAnnouncementPriority::High);
+        imp.result_page.announce(
+            &format!("{title}. {description}"),
+            gtk::AccessibleAnnouncementPriority::High,
+        );
 
-        while let Some(child) = imp.result_drives.first_child() {
-            imp.result_drives.remove(&child);
+        for row in imp.result_rows.borrow_mut().drain(..) {
+            eprintln!("DIAG: result_drives.remove");
+            imp.result_drives.remove(&row);
         }
         while let Some(child) = imp.result_actions.first_child() {
+            eprintln!("DIAG: result_actions.remove");
             imp.result_actions.remove(&child);
         }
 
@@ -2159,56 +2608,89 @@ impl DynonWindow {
                         parts.push(format!("Cycle {c}"));
                     }
                     if outcome.plates_written > 0 {
-                        parts.push(format!("{} plates", job::group(outcome.plates_written as u64)));
+                        parts.push(format!(
+                            "{} plates",
+                            job::group(outcome.plates_written as u64)
+                        ));
                     }
                     parts.push(duration_precise(outcome.elapsed.as_secs()));
                     ("emblem-ok-symbolic", "success", parts.join(" · "))
                 }
                 Outcome::Failed(reason) => ("dialog-error-symbolic", "error", capitalize(reason)),
-                Outcome::Skipped => ("dialog-warning-symbolic", "warning", "Not started".to_string()),
-                Outcome::Interrupted => ("dialog-warning-symbolic", "warning", "Interrupted — plates folder is incomplete".to_string()),
+                Outcome::Skipped => (
+                    "dialog-warning-symbolic",
+                    "warning",
+                    "Not started".to_string(),
+                ),
+                Outcome::Interrupted => (
+                    "dialog-warning-symbolic",
+                    "warning",
+                    "Interrupted — plates folder is incomplete".to_string(),
+                ),
             };
-            let row = adw::ActionRow::builder().title(&outcome.name).subtitle(&subtitle).build();
+            let row = adw::ActionRow::builder()
+                .title(&outcome.name)
+                .subtitle(&subtitle)
+                .build();
             let prefix = gtk::Image::from_icon_name(icon_name);
             prefix.add_css_class(class);
             row.add_prefix(&prefix);
             if matches!(outcome.result, Outcome::Failed(_)) {
-                let retry = gtk::Button::builder().label("Retry").css_classes(["flat"]).valign(gtk::Align::Center).build();
+                let retry = gtk::Button::builder()
+                    .label("Retry")
+                    .css_classes(["flat"])
+                    .valign(gtk::Align::Center)
+                    .build();
                 let name = outcome.name.clone();
                 retry.connect_clicked(clone!(
-                    #[weak(rename_to = win)] self,
+                    #[weak(rename_to = win)]
+                    self,
                     move |_| win.retry_drive(&name)
                 ));
                 row.add_suffix(&retry);
             }
             imp.result_drives.add(&row);
+            imp.result_rows.borrow_mut().push(row.clone());
         }
 
-        let ejectable: Vec<&DriveOutcome> = updated.iter().filter(|o| o.kind == TargetKind::Mounted).copied().collect();
+        let ejectable: Vec<&DriveOutcome> = updated
+            .iter()
+            .filter(|o| o.kind == TargetKind::Mounted)
+            .copied()
+            .collect();
         if !ejectable.is_empty() {
             let label = match ejectable.len() {
                 1 => format!("Eject {}", ejectable[0].name),
                 2 => "Eject Both".to_string(),
                 _ => "Eject All".to_string(),
             };
-            let eject = gtk::Button::builder().label(label).css_classes(["pill", "suggested-action"]).build();
+            let eject = gtk::Button::builder()
+                .label(label)
+                .css_classes(["pill", "suggested-action"])
+                .build();
             let paths: Vec<PathBuf> = ejectable.iter().map(|o| o.path.clone()).collect();
             let names: Vec<String> = ejectable.iter().map(|o| o.name.clone()).collect();
             eject.connect_clicked(clone!(
-                #[weak(rename_to = win)] self,
+                #[weak(rename_to = win)]
+                self,
                 move |_| win.eject_drives(paths.clone(), names.clone())
             ));
             imp.result_actions.append(&eject);
         }
 
-        let done = gtk::Button::builder().label("Done").css_classes(["pill"]).build();
+        let done = gtk::Button::builder()
+            .label("Done")
+            .css_classes(["pill"])
+            .build();
         done.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.finish_result()
         ));
         imp.result_actions.append(&done);
 
         if let Some(old) = imp.result_details_scroller.borrow_mut().take() {
+            eprintln!("DIAG: result_details_row.remove");
             imp.result_details_row.remove(&old);
         }
         let details_list = self.build_plain_log_list();
@@ -2259,12 +2741,15 @@ impl DynonWindow {
                 gio::MountOperation::NONE,
                 gio::Cancellable::NONE,
                 clone!(
-                    #[weak(rename_to = win)] self,
+                    #[weak(rename_to = win)]
+                    self,
                     move |result| {
                         if result.is_ok() {
                             win.toast(&format!("{name} can be unplugged"));
                         } else {
-                            win.toast_persistent(&format!("Could not eject {name} — eject it from Files"));
+                            win.toast_persistent(&format!(
+                                "Could not eject {name} — eject it from Files"
+                            ));
                         }
                     }
                 ),
@@ -2297,7 +2782,10 @@ fn drive_names_text(names: &[String]) -> String {
 impl DynonWindow {
     fn build_log_list(&self) {
         let imp = self.imp();
-        let list = gtk::ListBox::builder().selection_mode(gtk::SelectionMode::None).css_classes(["background"]).build();
+        let list = gtk::ListBox::builder()
+            .selection_mode(gtk::SelectionMode::None)
+            .css_classes(["background"])
+            .build();
         list.update_property(&[gtk::accessible::Property::Label("Activity log")]);
 
         let scroller = gtk::ScrolledWindow::builder()
@@ -2315,7 +2803,8 @@ impl DynonWindow {
             .build();
         copy.update_property(&[gtk::accessible::Property::Label("Copy the log")]);
         copy.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.copy_log_to_clipboard()
         ));
 
@@ -2327,7 +2816,8 @@ impl DynonWindow {
             .build();
         save.update_property(&[gtk::accessible::Property::Label("Save the log to a file")]);
         save.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.save_log_to_file()
         ));
 
@@ -2343,7 +2833,10 @@ impl DynonWindow {
     /// A fresh, read-only rendering of the current log — used for the result
     /// page's Details and the standalone Activity Log dialog.
     fn build_plain_log_list(&self) -> gtk::ListBox {
-        let list = gtk::ListBox::builder().selection_mode(gtk::SelectionMode::None).css_classes(["background"]).build();
+        let list = gtk::ListBox::builder()
+            .selection_mode(gtk::SelectionMode::None)
+            .css_classes(["background"])
+            .build();
         list.update_property(&[gtk::accessible::Property::Label("Activity log")]);
         for (severity, time, message) in self.imp().log_entries.borrow().iter() {
             list.append(&log_row(*severity, time, message));
@@ -2352,8 +2845,13 @@ impl DynonWindow {
     }
 
     fn log_header_text(&self, plan: &job::Plan) -> String {
-        let now = glib::DateTime::now_local().or_else(|_| glib::DateTime::now_utc()).expect("system clock");
-        let started = now.format("%Y-%m-%d %H:%M:%S").map(|s| s.to_string()).unwrap_or_default();
+        let now = glib::DateTime::now_local()
+            .or_else(|_| glib::DateTime::now_utc())
+            .expect("system clock");
+        let started = now
+            .format("%Y-%m-%d %H:%M:%S")
+            .map(|s| s.to_string())
+            .unwrap_or_default();
         let mut out = format!("Dynon USB Updater 1.0 — log started {started}\n");
         let sources = self.imp().sources.borrow();
         if let Some(folder) = &sources.folder {
@@ -2361,14 +2859,22 @@ impl DynonWindow {
         }
         if let Some(av) = &plan.aviation {
             let name = av.file_name().unwrap_or_default().to_string_lossy();
-            let cycle = scan::parse_cycle(&name).map(|c| c.to_string()).unwrap_or_default();
-            let size = std::fs::metadata(av).map(|m| job::size(m.len())).unwrap_or_default();
+            let cycle = scan::parse_cycle(&name)
+                .map(|c| c.to_string())
+                .unwrap_or_default();
+            let size = std::fs::metadata(av)
+                .map(|m| job::size(m.len()))
+                .unwrap_or_default();
             out.push_str(&format!("Aviation:  {name} (Cycle {cycle}, {size})\n"));
         }
         if let Some(ob) = &plan.obstacle {
             let name = ob.file_name().unwrap_or_default().to_string_lossy();
-            let cycle = scan::parse_cycle(&name).map(|c| c.to_string()).unwrap_or_default();
-            let size = std::fs::metadata(ob).map(|m| job::size(m.len())).unwrap_or_default();
+            let cycle = scan::parse_cycle(&name)
+                .map(|c| c.to_string())
+                .unwrap_or_default();
+            let size = std::fs::metadata(ob)
+                .map(|m| job::size(m.len()))
+                .unwrap_or_default();
             out.push_str(&format!("Obstacle:  {name} (Cycle {cycle}, {size})\n"));
         }
         if let Some(archive) = &plan.archive {
@@ -2443,43 +2949,80 @@ impl DynonWindow {
     }
 
     fn save_log_to_file(&self) {
-        let dialog = gtk::FileDialog::builder().title("Save the activity log").initial_name("dynon-usb-updater.log").build();
+        let dialog = gtk::FileDialog::builder()
+            .title("Save the activity log")
+            .initial_name("dynon-usb-updater.log")
+            .build();
         let text = self.log_export_text();
-        dialog.save(Some(self), gio::Cancellable::NONE, clone!(
-            #[weak(rename_to = win)] self,
-            move |result| {
-                if let Ok(file) = result {
-                    if file
-                        .replace_contents(text.as_bytes(), None, false, gio::FileCreateFlags::NONE, gio::Cancellable::NONE)
-                        .is_ok()
-                    {
-                        win.toast_action("Log saved", "Open", clone!(
-                            #[weak] file,
-                            #[weak] win,
-                            move || {
-                                gtk::FileLauncher::new(Some(&file)).launch(Some(&win), gio::Cancellable::NONE, |_| {});
-                            }
-                        ));
+        dialog.save(
+            Some(self),
+            gio::Cancellable::NONE,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
+                        if file
+                            .replace_contents(
+                                text.as_bytes(),
+                                None,
+                                false,
+                                gio::FileCreateFlags::NONE,
+                                gio::Cancellable::NONE,
+                            )
+                            .is_ok()
+                        {
+                            win.toast_action(
+                                "Log saved",
+                                "Open",
+                                clone!(
+                                    #[weak]
+                                    file,
+                                    #[weak]
+                                    win,
+                                    move || {
+                                        gtk::FileLauncher::new(Some(&file)).launch(
+                                            Some(&win),
+                                            gio::Cancellable::NONE,
+                                            |_| {},
+                                        );
+                                    }
+                                ),
+                            );
+                        }
                     }
                 }
-            }
-        ));
+            ),
+        );
     }
 
     fn show_log_dialog(&self) {
         let list = self.build_plain_log_list();
-        let scroller = gtk::ScrolledWindow::builder().child(&list).vexpand(true).build();
+        let scroller = gtk::ScrolledWindow::builder()
+            .child(&list)
+            .vexpand(true)
+            .build();
 
-        let copy = gtk::Button::builder().icon_name("edit-copy-symbolic").tooltip_text("Copy the log to the clipboard").css_classes(["flat"]).build();
+        let copy = gtk::Button::builder()
+            .icon_name("edit-copy-symbolic")
+            .tooltip_text("Copy the log to the clipboard")
+            .css_classes(["flat"])
+            .build();
         copy.update_property(&[gtk::accessible::Property::Label("Copy the log")]);
         copy.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.copy_log_to_clipboard()
         ));
-        let save = gtk::Button::builder().icon_name("document-save-symbolic").tooltip_text("Save the log to a file").css_classes(["flat"]).build();
+        let save = gtk::Button::builder()
+            .icon_name("document-save-symbolic")
+            .tooltip_text("Save the log to a file")
+            .css_classes(["flat"])
+            .build();
         save.update_property(&[gtk::accessible::Property::Label("Save the log to a file")]);
         save.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.save_log_to_file()
         ));
 
@@ -2490,7 +3033,12 @@ impl DynonWindow {
         toolbar.add_top_bar(&header);
         toolbar.set_content(Some(&scroller));
 
-        let dialog = adw::Dialog::builder().title("Activity Log").content_width(700).content_height(560).child(&toolbar).build();
+        let dialog = adw::Dialog::builder()
+            .title("Activity Log")
+            .content_width(700)
+            .content_height(560)
+            .child(&toolbar)
+            .build();
         dialog.present(Some(self));
     }
 }
@@ -2505,7 +3053,11 @@ fn time_now() -> String {
 }
 
 fn onoff(b: bool) -> &'static str {
-    if b { "on" } else { "off" }
+    if b {
+        "on"
+    } else {
+        "off"
+    }
 }
 
 fn log_dir() -> Option<PathBuf> {
@@ -2534,7 +3086,10 @@ fn log_row(severity: Severity, time: &str, message: &str) -> gtk::Box {
     }
     row.append(&icon);
 
-    let time_label = gtk::Label::builder().label(time).css_classes(["caption", "dimmed", "numeric"]).build();
+    let time_label = gtk::Label::builder()
+        .label(time)
+        .css_classes(["caption", "dimmed", "numeric"])
+        .build();
     row.append(&time_label);
 
     let msg = gtk::Label::builder()
@@ -2556,7 +3111,9 @@ fn log_row(severity: Severity, time: &str, message: &str) -> gtk::Box {
         Severity::Error => "Error. ",
         Severity::Info => "",
     };
-    row.update_property(&[gtk::accessible::Property::Label(&format!("{prefix}{message}"))]);
+    row.update_property(&[gtk::accessible::Property::Label(&format!(
+        "{prefix}{message}"
+    ))]);
     row
 }
 
@@ -2578,7 +3135,11 @@ impl DynonWindow {
     }
 
     fn toast_action(&self, message: &str, button: &str, action: impl Fn() + 'static) {
-        let toast = adw::Toast::builder().title(message).button_label(button).timeout(5).build();
+        let toast = adw::Toast::builder()
+            .title(message)
+            .button_label(button)
+            .timeout(5)
+            .build();
         toast.connect_button_clicked(move |_| action());
         self.imp().toasts.add_toast(toast);
     }
@@ -2600,17 +3161,27 @@ impl DynonWindow {
             .active(self.preference("verify-copies", true))
             .build();
         verify.connect_active_notify(clone!(
-            #[weak(rename_to = win)] self,
-            move |row| { win.save("verify-copies", row.is_active()); win.update_ready(); }
+            #[weak(rename_to = win)]
+            self,
+            move |row| {
+                win.save("verify-copies", row.is_active());
+                win.update_ready();
+            }
         ));
         let replace_old = adw::SwitchRow::builder()
             .title("Replace Older Databases")
-            .subtitle("Delete previous cycles from the drive so your SkyView sees only the new one.")
+            .subtitle(
+                "Delete previous cycles from the drive so your SkyView sees only the new one.",
+            )
             .active(self.preference("replace-old-databases", true))
             .build();
         replace_old.connect_active_notify(clone!(
-            #[weak(rename_to = win)] self,
-            move |row| { win.save("replace-old-databases", row.is_active()); win.update_ready(); }
+            #[weak(rename_to = win)]
+            self,
+            move |row| {
+                win.save("replace-old-databases", row.is_active());
+                win.update_ready();
+            }
         ));
         let eject = adw::SwitchRow::builder()
             .title("Eject When Finished")
@@ -2618,7 +3189,8 @@ impl DynonWindow {
             .active(self.preference("eject-when-finished", false))
             .build();
         eject.connect_active_notify(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |row| win.save("eject-when-finished", row.is_active())
         ));
         updating.add(&verify);
@@ -2627,16 +3199,28 @@ impl DynonWindow {
         page.add(&updating);
 
         let logs = adw::PreferencesGroup::builder().title("Logs").build();
-        let logs_row = adw::ActionRow::builder().title("Activity Logs").subtitle("Every run is saved here").build();
-        let open = gtk::Button::builder().icon_name("folder-open-symbolic").css_classes(["flat"]).valign(gtk::Align::Center).build();
+        let logs_row = adw::ActionRow::builder()
+            .title("Activity Logs")
+            .subtitle("Every run is saved here")
+            .build();
+        let open = gtk::Button::builder()
+            .icon_name("folder-open-symbolic")
+            .css_classes(["flat"])
+            .valign(gtk::Align::Center)
+            .build();
         open.update_property(&[gtk::accessible::Property::Label("Open the logs folder")]);
         open.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| {
                 if let Some(dir) = log_dir() {
                     let _ = std::fs::create_dir_all(&dir);
                     let file = gio::File::for_path(&dir);
-                    gtk::FileLauncher::new(Some(&file)).launch(Some(&win), gio::Cancellable::NONE, |_| {});
+                    gtk::FileLauncher::new(Some(&file)).launch(
+                        Some(&win),
+                        gio::Cancellable::NONE,
+                        |_| {},
+                    );
                 }
             }
         ));
@@ -2683,13 +3267,21 @@ impl DynonWindow {
             .wrap(true)
             .xalign(0.0)
             .build();
-        let copy = gtk::Button::builder().label("Copy Command").icon_name("edit-copy-symbolic").css_classes(["flat"]).build();
+        let copy = gtk::Button::builder()
+            .label("Copy Command")
+            .icon_name("edit-copy-symbolic")
+            .css_classes(["flat"])
+            .build();
         let cmd = command.clone();
         copy.connect_clicked(clone!(
-            #[weak(rename_to = win)] self,
+            #[weak(rename_to = win)]
+            self,
             move |_| win.clipboard().set_text(&cmd)
         ));
-        let extra = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(8).build();
+        let extra = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(8)
+            .build();
         extra.append(&label);
         extra.append(&copy);
 
@@ -2880,13 +3472,18 @@ fn duration_text(seconds: u64) -> String {
     } else {
         let hours = seconds / 3600;
         let minutes = (seconds % 3600) / 60;
-        format!("{hours} hour{} {minutes} minutes", if hours == 1 { "" } else { "s" })
+        format!(
+            "{hours} hour{} {minutes} minutes",
+            if hours == 1 { "" } else { "s" }
+        )
     }
 }
 
 /// "{m} min {s} s" style used on the result page's per-drive rows.
 fn duration_precise(seconds: u64) -> String {
-    if seconds < 60 {
+    if seconds == 0 {
+        "less than a second".into()
+    } else if seconds < 60 {
         format!("{seconds} s")
     } else if seconds < 3600 {
         format!("{} min {} s", seconds / 60, seconds % 60)
@@ -2901,16 +3498,31 @@ fn duration_precise(seconds: u64) -> String {
 
 impl DynonWindow {
     fn show_card_menu(&self, toggle: &gtk::ToggleButton, key: &str, x: f64, y: f64) {
-        let Some(drive) = self.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.drive.clone()) else {
+        let Some(drive) = self
+            .imp()
+            .cards
+            .borrow()
+            .iter()
+            .find(|c| c.drive.key() == key)
+            .map(|c| c.drive.clone())
+        else {
             return;
         };
         let menu = gio::Menu::new();
-        let select_item = gio::MenuItem::new(Some(if toggle.is_active() { "Deselect" } else { "Select" }), None);
+        let select_item = gio::MenuItem::new(
+            Some(if toggle.is_active() {
+                "Deselect"
+            } else {
+                "Select"
+            }),
+            None,
+        );
         select_item.set_action_and_target_value(Some("win.toggle-drive"), Some(&key.to_variant()));
         let core = gio::Menu::new();
         core.append_item(&select_item);
         let show_item = gio::MenuItem::new(Some("Show in Files"), None);
-        show_item.set_action_and_target_value(Some("win.show-drive-in-files"), Some(&key.to_variant()));
+        show_item
+            .set_action_and_target_value(Some("win.show-drive-in-files"), Some(&key.to_variant()));
         core.append_item(&show_item);
         menu.append_section(None, &core);
 
@@ -2918,10 +3530,16 @@ impl DynonWindow {
             let extra = gio::Menu::new();
             let path = drive.path.to_string_lossy().to_string();
             let again = gio::MenuItem::new(Some("Choose Again…"), None);
-            again.set_action_and_target_value(Some("win.choose-drive-again"), Some(&path.to_variant()));
+            again.set_action_and_target_value(
+                Some("win.choose-drive-again"),
+                Some(&path.to_variant()),
+            );
             extra.append_item(&again);
             let remove = gio::MenuItem::new(Some("Remove"), None);
-            remove.set_action_and_target_value(Some("win.remove-drive-target"), Some(&path.to_variant()));
+            remove.set_action_and_target_value(
+                Some("win.remove-drive-target"),
+                Some(&path.to_variant()),
+            );
             extra.append_item(&remove);
             menu.append_section(None, &extra);
         }
@@ -2945,12 +3563,23 @@ impl DynonWindow {
         };
         if let Some(path) = path {
             let file = gio::File::for_path(&path);
-            gtk::FileLauncher::new(Some(&file)).open_containing_folder(Some(self), gio::Cancellable::NONE, |_| {});
+            gtk::FileLauncher::new(Some(&file)).open_containing_folder(
+                Some(self),
+                gio::Cancellable::NONE,
+                |_| {},
+            );
         }
     }
 
     fn show_drive_in_files(&self, key: &str) {
-        let Some(drive) = self.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.drive.clone()) else {
+        let Some(drive) = self
+            .imp()
+            .cards
+            .borrow()
+            .iter()
+            .find(|c| c.drive.key() == key)
+            .map(|c| c.drive.clone())
+        else {
             return;
         };
         let file = gio::File::for_path(&drive.path);
@@ -2963,26 +3592,36 @@ impl DynonWindow {
         targets.retain(|p| p != path);
         if targets.len() != before {
             self.save_manual_targets(&targets);
-            let name = PathBuf::from(path).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            let name = PathBuf::from(path)
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
             let removed = path.to_string();
-            self.toast_action(&format!("{name} removed"), "Undo", clone!(
-                #[weak(rename_to = win)] self,
-                move || {
-                    let mut targets = win.manual_targets();
-                    if !targets.contains(&removed) {
-                        targets.push(removed.clone());
+            self.toast_action(
+                &format!("{name} removed"),
+                "Undo",
+                clone!(
+                    #[weak(rename_to = win)]
+                    self,
+                    move || {
+                        let mut targets = win.manual_targets();
+                        if !targets.contains(&removed) {
+                            targets.push(removed.clone());
+                        }
+                        win.save_manual_targets(&targets);
+                        win.refresh_drives();
                     }
-                    win.save_manual_targets(&targets);
-                    win.refresh_drives();
-                }
-            ));
+                ),
+            );
             self.refresh_drives();
         }
     }
 
     /// D6: preview of the resulting destination paths, with the wrapper switch.
     fn show_archive_preview(&self) {
-        let Some(archive) = self.imp().sources.borrow().archive.clone() else { return };
+        let Some(archive) = self.imp().sources.borrow().archive.clone() else {
+            return;
+        };
         let strip_current = self.imp().sources.borrow().strip_wrapper;
 
         let group = adw::PreferencesGroup::builder()
@@ -3001,13 +3640,22 @@ impl DynonWindow {
             row
         });
 
-        let list = gtk::ListBox::builder().css_classes(["boxed-list"]).selection_mode(gtk::SelectionMode::None).build();
-        let footer = gtk::Label::builder().css_classes(["caption", "dimmed"]).xalign(0.0).build();
+        let list = gtk::ListBox::builder()
+            .css_classes(["boxed-list"])
+            .selection_mode(gtk::SelectionMode::None)
+            .build();
+        let footer = gtk::Label::builder()
+            .css_classes(["caption", "dimmed"])
+            .xalign(0.0)
+            .build();
 
         let refill = clone!(
-            #[weak] list,
-            #[weak] footer,
-            #[strong] archive,
+            #[weak]
+            list,
+            #[weak]
+            footer,
+            #[strong]
+            archive,
             move |strip: bool| {
                 while let Some(child) = list.first_child() {
                     list.remove(&child);
@@ -3018,7 +3666,10 @@ impl DynonWindow {
                         .label(member.dest.to_string_lossy())
                         .xalign(0.0)
                         .css_classes(["monospace", "caption"])
-                        .margin_top(4).margin_bottom(4).margin_start(8).margin_end(8)
+                        .margin_top(4)
+                        .margin_bottom(4)
+                        .margin_start(8)
+                        .margin_end(8)
                         .build();
                     list.append(&label);
                 }
@@ -3033,8 +3684,10 @@ impl DynonWindow {
         refill(strip_current);
         if let Some(row) = &wrapper_row {
             row.connect_active_notify(clone!(
-                #[weak(rename_to = win)] self,
-                #[strong] refill,
+                #[weak(rename_to = win)]
+                self,
+                #[strong]
+                refill,
                 move |row| {
                     win.imp().sources.borrow_mut().strip_wrapper = row.is_active();
                     refill(row.is_active());
@@ -3042,17 +3695,32 @@ impl DynonWindow {
             ));
         }
 
-        let content = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(12).margin_top(12).margin_bottom(12).margin_start(12).margin_end(12).build();
+        let content = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(12)
+            .margin_top(12)
+            .margin_bottom(12)
+            .margin_start(12)
+            .margin_end(12)
+            .build();
         content.append(&group);
         content.append(&list);
         content.append(&footer);
-        let scroller = gtk::ScrolledWindow::builder().child(&content).vexpand(true).build();
+        let scroller = gtk::ScrolledWindow::builder()
+            .child(&content)
+            .vexpand(true)
+            .build();
 
         let toolbar = adw::ToolbarView::new();
         toolbar.add_top_bar(&adw::HeaderBar::new());
         toolbar.set_content(Some(&scroller));
 
-        let dialog = adw::Dialog::builder().title("Archive Contents").content_width(520).content_height(480).child(&toolbar).build();
+        let dialog = adw::Dialog::builder()
+            .title("Archive Contents")
+            .content_width(520)
+            .content_height(480)
+            .child(&toolbar)
+            .build();
         dialog.present(Some(self));
     }
 }

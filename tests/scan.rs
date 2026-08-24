@@ -33,8 +33,14 @@ fn entitlement_ids_are_extracted_and_matched() {
 
 #[test]
 fn classification_and_ranking() {
-    assert_eq!(scan::classify("airmate_av_data_us_2608_1.dup"), DupKind::Aviation);
-    assert_eq!(scan::classify("airmate_obstacle_data_us_2608_1.dup"), DupKind::Obstacle);
+    assert_eq!(
+        scan::classify("airmate_av_data_us_2608_1.dup"),
+        DupKind::Aviation
+    );
+    assert_eq!(
+        scan::classify("airmate_obstacle_data_us_2608_1.dup"),
+        DupKind::Obstacle
+    );
     assert_eq!(scan::classify("terrain.dup"), DupKind::Other);
 
     let dir = tmpdir("rank");
@@ -43,7 +49,10 @@ fn classification_and_ranking() {
         "airmate_av_data_us_2608_013712.dup",
         "airmate_obstacle_data_us_2608_013712.dup",
     ] {
-        File::create(dir.join(name)).unwrap().write_all(b"x").unwrap();
+        File::create(dir.join(name))
+            .unwrap()
+            .write_all(b"x")
+            .unwrap();
     }
     let files = scan::scan_dup_files(&dir, 3);
     assert_eq!(files.len(), 3);
@@ -68,7 +77,11 @@ fn archive_strips_chartdata_and_plates_but_keeps_data_folders() {
     let path = dir.join("US-Plates-2608.zip");
     write_zip(
         &path,
-        &["ChartData/Plates/US/a.png", "ChartData/Plates/US/b.png", "ChartData/.DS_Store"],
+        &[
+            "ChartData/Plates/US/a.png",
+            "ChartData/Plates/US/b.png",
+            "ChartData/.DS_Store",
+        ],
     );
     let archive = scan::read_archive(&path).unwrap();
     assert_eq!(archive.members.len(), 2, "junk must not be counted");
@@ -84,12 +97,24 @@ fn a_file_beside_the_data_folder_stops_the_strip() {
     // The real archive has one file directly in Plates/ next to US/.
     let dir = tmpdir("zip-mixed");
     let path = dir.join("plates.zip");
-    write_zip(&path, &["ChartData/Plates/US/a.png", "ChartData/Plates/index.db"]);
+    write_zip(
+        &path,
+        &["ChartData/Plates/US/a.png", "ChartData/Plates/index.db"],
+    );
     let archive = scan::read_archive(&path).unwrap();
     assert_eq!(archive.members.len(), 2);
-    assert!(archive.members.iter().any(|m| m.dest.to_str() == Some("US/a.png")));
-    assert!(archive.members.iter().any(|m| m.dest.to_str() == Some("index.db")));
-    assert_eq!(archive.wrapper, None, "no single wrapper when a file sits beside it");
+    assert!(archive
+        .members
+        .iter()
+        .any(|m| m.dest.to_str() == Some("US/a.png")));
+    assert!(archive
+        .members
+        .iter()
+        .any(|m| m.dest.to_str() == Some("index.db")));
+    assert_eq!(
+        archive.wrapper, None,
+        "no single wrapper when a file sits beside it"
+    );
 }
 
 #[test]
@@ -121,6 +146,14 @@ fn real_archive_matches_the_measured_numbers() {
     let archive = scan::read_archive(&path).unwrap();
     assert_eq!(archive.members.len(), 23_104);
     assert_eq!(archive.junk_skipped, 1);
-    assert_eq!(archive.members[0].dest.components().next().unwrap().as_os_str(), "US");
+    assert_eq!(
+        archive.members[0]
+            .dest
+            .components()
+            .next()
+            .unwrap()
+            .as_os_str(),
+        "US"
+    );
     assert_eq!(archive.cycle.unwrap().label(), "2608");
 }

@@ -76,7 +76,10 @@ pub fn recognise(root: &Path, label: &str) -> (u8, Option<Cycle>, Option<String>
             let lower = name.to_ascii_lowercase();
             let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
             if is_dir {
-                if matches!(name.as_str(), "FACTORY" | "User Settings" | "settings_archive") {
+                if matches!(
+                    name.as_str(),
+                    "FACTORY" | "User Settings" | "settings_archive"
+                ) {
                     has_support_dir = true;
                 }
                 continue;
@@ -119,12 +122,18 @@ pub fn recognise(root: &Path, label: &str) -> (u8, Option<Cycle>, Option<String>
 fn capacity(path: &Path) -> (u64, u64, bool) {
     let file = gio::File::for_path(path);
     let (mut total, mut free) = (0, 0);
-    if let Ok(info) = file.query_filesystem_info("filesystem::size,filesystem::free", gio::Cancellable::NONE) {
+    if let Ok(info) =
+        file.query_filesystem_info("filesystem::size,filesystem::free", gio::Cancellable::NONE)
+    {
         total = info.attribute_uint64("filesystem::size");
         free = info.attribute_uint64("filesystem::free");
     }
     let writable = file
-        .query_info("access::can-write", gio::FileQueryInfoFlags::NONE, gio::Cancellable::NONE)
+        .query_info(
+            "access::can-write",
+            gio::FileQueryInfoFlags::NONE,
+            gio::Cancellable::NONE,
+        )
         .map(|i| i.boolean("access::can-write"))
         .unwrap_or(false);
     (total, free, writable)
@@ -164,7 +173,10 @@ pub fn enumerate() -> Vec<Drive> {
             .filter(|s| !s.is_empty())
             .map(|s| {
                 let path = PathBuf::from(s);
-                let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default();
                 drive_from_root(&path, name, TargetKind::Mounted, None)
             })
             .collect();
@@ -175,7 +187,9 @@ pub fn enumerate() -> Vec<Drive> {
         if mount.is_shadowed() {
             continue;
         }
-        let Some(root) = mount.root().path() else { continue };
+        let Some(root) = mount.root().path() else {
+            continue;
+        };
         let removable = mount.can_eject()
             || mount
                 .volume()
@@ -185,9 +199,10 @@ pub fn enumerate() -> Vec<Drive> {
         if !removable {
             continue;
         }
-        let uuid = mount.uuid().map(|u| u.to_string()).or_else(|| {
-            mount.volume().and_then(|v| v.uuid()).map(|u| u.to_string())
-        });
+        let uuid = mount
+            .uuid()
+            .map(|u| u.to_string())
+            .or_else(|| mount.volume().and_then(|v| v.uuid()).map(|u| u.to_string()));
         let name = mount.name().to_string();
         drives.push(drive_from_root(&root, name, TargetKind::Mounted, uuid));
     }
@@ -211,7 +226,9 @@ pub fn measure_plates(dir: &Path) -> (u64, usize) {
     let (mut bytes, mut files) = (0u64, 0usize);
     let mut stack = vec![dir.to_path_buf()];
     while let Some(current) = stack.pop() {
-        let Ok(entries) = fs::read_dir(&current) else { continue };
+        let Ok(entries) = fs::read_dir(&current) else {
+            continue;
+        };
         for entry in entries.flatten() {
             match entry.file_type() {
                 Ok(t) if t.is_dir() => stack.push(entry.path()),
@@ -287,7 +304,9 @@ impl Sandbox {
     }
 
     pub fn classify(&self) -> EmptyReason {
-        if self.sandboxed && (!self.grants_media || !self.media_roots_visible || self.hardware_present) {
+        if self.sandboxed
+            && (!self.grants_media || !self.media_roots_visible || self.hardware_present)
+        {
             EmptyReason::SandboxBlocked
         } else if self.hardware_present {
             EmptyReason::NotMounted

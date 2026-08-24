@@ -23,7 +23,10 @@ fn recognises_real_skyview_drives_when_present() {
     // Both real sticks carry ChartData, root .dup files and a CHARTS key.
     if let Some(d) = drives.iter().find(|d| d.name == "DYNON") {
         assert!(d.recognised(), "DYNON must be recognised");
-        assert_eq!(d.installed_cycle.map(|c| c.label()).as_deref(), Some("2607"));
+        assert_eq!(
+            d.installed_cycle.map(|c| c.label()).as_deref(),
+            Some("2607")
+        );
         assert_eq!(d.entitlement.as_deref(), Some("013712"));
         assert!(d.writable);
     }
@@ -40,6 +43,12 @@ fn sandbox_detection_reports_the_host_correctly() {
         sandbox.hardware_present,
         sandbox.classify()
     );
-    assert!(!sandbox.sandboxed, "the test suite does not run in a sandbox");
-    assert!(sandbox.hardware_present, "USB sticks are attached on this machine");
+    assert!(
+        !sandbox.sandboxed,
+        "the test suite does not run in a sandbox"
+    );
+    assert!(
+        sandbox.hardware_present,
+        "USB sticks are attached on this machine"
+    );
 }

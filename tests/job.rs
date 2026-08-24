@@ -35,19 +35,44 @@ fn setup(name: &str) -> Env {
     fs::create_dir_all(&src).unwrap();
     let aviation = src.join("airmate_av_data_us_2608_013712.dup");
     let obstacle = src.join("airmate_obstacle_data_us_2608_013712.dup");
-    File::create(&aviation).unwrap().write_all(&vec![7u8; 300_000]).unwrap();
-    File::create(&obstacle).unwrap().write_all(&vec![9u8; 120_000]).unwrap();
+    File::create(&aviation)
+        .unwrap()
+        .write_all(&vec![7u8; 300_000])
+        .unwrap();
+    File::create(&obstacle)
+        .unwrap()
+        .write_all(&vec![9u8; 120_000])
+        .unwrap();
 
     let zip_path = src.join("US-Plates-2608.zip");
-    make_zip(&zip_path, &["ChartData/Plates/US/a.png", "ChartData/Plates/US/b.png", "ChartData/.DS_Store"]);
+    make_zip(
+        &zip_path,
+        &[
+            "ChartData/Plates/US/a.png",
+            "ChartData/Plates/US/b.png",
+            "ChartData/.DS_Store",
+        ],
+    );
 
     // A fake drive carrying last cycle's data, plus a file we must not touch.
     let root = base.join("FAKEUSB");
     fs::create_dir_all(root.join("ChartData/Plates/US")).unwrap();
-    File::create(root.join("ChartData/Plates/US/old.png")).unwrap().write_all(b"old").unwrap();
-    File::create(root.join("airmate_av_data_us_2607_013712.dup")).unwrap().write_all(b"old").unwrap();
-    File::create(root.join("CHARTS-013712.key")).unwrap().write_all(b"key").unwrap();
-    File::create(root.join("pilot-notes.txt")).unwrap().write_all(b"keep me").unwrap();
+    File::create(root.join("ChartData/Plates/US/old.png"))
+        .unwrap()
+        .write_all(b"old")
+        .unwrap();
+    File::create(root.join("airmate_av_data_us_2607_013712.dup"))
+        .unwrap()
+        .write_all(b"old")
+        .unwrap();
+    File::create(root.join("CHARTS-013712.key"))
+        .unwrap()
+        .write_all(b"key")
+        .unwrap();
+    File::create(root.join("pilot-notes.txt"))
+        .unwrap()
+        .write_all(b"keep me")
+        .unwrap();
 
     Env {
         plan_drive: drive::folder_target(&root),
@@ -89,19 +114,28 @@ fn a_full_run_replaces_data_and_leaves_everything_else_alone() {
     assert_eq!(outcomes.len(), 1);
     assert_eq!(outcomes[0].result, job::Outcome::Updated);
     assert_eq!(outcomes[0].plates_written, 2);
-    assert!(saw_no_return, "erasing plates must announce the point of no return");
+    assert!(
+        saw_no_return,
+        "erasing plates must announce the point of no return"
+    );
 
     // New databases present, previous cycle gone, unrelated file untouched.
     assert!(env.root.join("airmate_av_data_us_2608_013712.dup").exists());
     assert!(!env.root.join("airmate_av_data_us_2607_013712.dup").exists());
-    assert_eq!(fs::read_to_string(env.root.join("pilot-notes.txt")).unwrap(), "keep me");
+    assert_eq!(
+        fs::read_to_string(env.root.join("pilot-notes.txt")).unwrap(),
+        "keep me"
+    );
     assert!(env.root.join("CHARTS-013712.key").exists());
 
     // Plates replaced, not merged: the stale file is gone.
     assert!(env.root.join("ChartData/Plates/US/a.png").exists());
     assert!(!env.root.join("ChartData/Plates/US/old.png").exists());
     // No .part files survive a successful run.
-    assert!(fs::read_dir(&env.root).unwrap().flatten().all(|e| !e.file_name().to_string_lossy().ends_with(".part")));
+    assert!(fs::read_dir(&env.root)
+        .unwrap()
+        .flatten()
+        .all(|e| !e.file_name().to_string_lossy().ends_with(".part")));
 }
 
 #[test]
@@ -121,7 +155,10 @@ fn cancelling_before_the_erase_changes_nothing() {
         .next()
         .unwrap();
     assert_eq!(outcomes[0].result, job::Outcome::Skipped);
-    assert!(env.root.join("ChartData/Plates/US/old.png").exists(), "nothing may be erased");
+    assert!(
+        env.root.join("ChartData/Plates/US/old.png").exists(),
+        "nothing may be erased"
+    );
     assert!(env.root.join("airmate_av_data_us_2607_013712.dup").exists());
 }
 
@@ -134,7 +171,10 @@ fn a_databases_only_run_leaves_plates_untouched() {
     job::run(p, tx, job::Cancel::new());
 
     let saw_no_return = rx.iter().any(|e| matches!(e, job::Event::PointOfNoReturn));
-    assert!(!saw_no_return, "a databases-only run never reaches the point of no return");
+    assert!(
+        !saw_no_return,
+        "a databases-only run never reaches the point of no return"
+    );
     assert!(env.root.join("ChartData/Plates/US/old.png").exists());
     assert!(env.root.join("airmate_av_data_us_2608_013712.dup").exists());
 }
@@ -163,7 +203,10 @@ fn a_drive_that_cannot_fit_fails_before_erasing() {
         other => panic!("expected a space failure, got {other:?}"),
     }
     assert!(!saw_no_return);
-    assert!(env.root.join("ChartData/Plates/US/old.png").exists(), "nothing erased on a failed pre-flight");
+    assert!(
+        env.root.join("ChartData/Plates/US/old.png").exists(),
+        "nothing erased on a failed pre-flight"
+    );
 }
 
 #[test]

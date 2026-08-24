@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Build and test
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --all
+        # The drive and archive tests skip themselves when the real hardware
+        # and cycle files are absent, so they are safe on a runner.
+
+  data:
+    name: Validate desktop data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y appstream desktop-file-utils libglib2.0-bin
+      - name: AppStream metainfo
+        run: appstreamcli validate --strict data/io.github.yfilali.DynonUSBUpdater.metainfo.xml
+      - name: Desktop entry
+        run: desktop-file-validate data/io.github.yfilali.DynonUSBUpdater.desktop
+      - name: GSettings schema
+        run: glib-compile-schemas --strict --dry-run data/
+
+  flatpak:
+    name: Flatpak build
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-49
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: dynon-usb-updater.flatpak
+          manifest-path: build-aux/io.github.yfilali.DynonUSBUpdater.yaml
+          cache-key: flatpak-builder-${{ github.sha }}

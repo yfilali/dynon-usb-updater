@@ -93,7 +93,8 @@ impl DynonApplication {
     pub fn install_app_actions(&self) {
         let quit = gio::SimpleAction::new("quit", None);
         quit.connect_activate(glib::clone!(
-            #[weak(rename_to = app)] self,
+            #[weak(rename_to = app)]
+            self,
             move |_, _| app.quit_guarded()
         ));
         self.add_action(&quit);

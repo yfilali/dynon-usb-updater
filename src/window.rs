@@ -13,6 +13,9 @@ use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::{Duration, Instant};
 
+/// Shown as the first entry of each setup dropdown so an unanswered
+/// question reads as unanswered.
+const CHOOSE_PLACEHOLDER: &str = "Choose…";
 const APP_ID: &str = "io.github.yfilali.DynonUSBUpdater";
 /// Deliberately pessimistic: under-promising beats over-promising.
 const ESTIMATED_BYTES_PER_SECOND: f64 = 12.0 * 1024.0 * 1024.0;
@@ -3495,6 +3498,11 @@ impl DynonWindow {
     /// dismissed without an explicit answer to both questions; from
     /// Preferences it is an ordinary editable dialog with a Cancel.
     fn show_aircraft_setup_dialog(&self, first_run: bool) {
+        /// Index 0 of each list; anything else is a real answer.
+        fn answered(selected: u32) -> bool {
+            selected != 0 && selected != u32::MAX
+        }
+
         let current_system = self
             .settings_string("system-type")
             .unwrap_or_else(|| "unset".into());
@@ -3514,26 +3522,31 @@ impl DynonWindow {
 
         let group = adw::PreferencesGroup::new();
 
-        let system_list =
-            gtk::StringList::new(&SYSTEM_TYPES.iter().map(|(_, l)| *l).collect::<Vec<_>>());
+        // AdwComboRow renders the first row's label even when nothing is
+        // selected, so an unanswered question looked answered while Continue
+        // stayed greyed out. Give "unanswered" a visible entry of its own.
+        let mut system_labels = vec![CHOOSE_PLACEHOLDER];
+        system_labels.extend(SYSTEM_TYPES.iter().map(|(_, l)| *l));
+        let system_list = gtk::StringList::new(&system_labels);
         let system_row = adw::ComboRow::builder()
             .title("Aircraft Certification")
             .subtitle("Certified (STC'd), or Experimental/LSA")
             .model(&system_list)
             .build();
         let system_index = SYSTEM_TYPES.iter().position(|(n, _)| *n == current_system);
-        system_row.set_selected(system_index.map(|i| i as u32).unwrap_or(u32::MAX));
+        system_row.set_selected(system_index.map(|i| i as u32 + 1).unwrap_or(0));
         group.add(&system_row);
 
-        let provider_list =
-            gtk::StringList::new(&PROVIDERS.iter().map(|(_, l)| *l).collect::<Vec<_>>());
+        let mut provider_labels = vec![CHOOSE_PLACEHOLDER];
+        provider_labels.extend(PROVIDERS.iter().map(|(_, l)| *l));
+        let provider_list = gtk::StringList::new(&provider_labels);
         let provider_row = adw::ComboRow::builder()
             .title("Database Provider")
             .subtitle("Only Dynon supports automatic download checks")
             .model(&provider_list)
             .build();
         let provider_index = PROVIDERS.iter().position(|(n, _)| *n == current_provider);
-        provider_row.set_selected(provider_index.map(|i| i as u32).unwrap_or(u32::MAX));
+        provider_row.set_selected(provider_index.map(|i| i as u32 + 1).unwrap_or(0));
         group.add(&provider_row);
 
         let dialog = adw::AlertDialog::builder()
@@ -3548,8 +3561,7 @@ impl DynonWindow {
         }
         dialog.add_response("save", if first_run { "Continue" } else { "Save" });
         dialog.set_response_appearance("save", adw::ResponseAppearance::Suggested);
-        let both_set = system_index.is_some() && provider_index.is_some();
-        dialog.set_response_enabled("save", both_set);
+        dialog.set_response_enabled("save", system_index.is_some() && provider_index.is_some());
 
         system_row.connect_selected_notify(clone!(
             #[weak]
@@ -3559,7 +3571,7 @@ impl DynonWindow {
             move |system_row| {
                 dialog.set_response_enabled(
                     "save",
-                    system_row.selected() != u32::MAX && provider_row.selected() != u32::MAX,
+                    answered(system_row.selected()) && answered(provider_row.selected()),
                 );
             }
         ));
@@ -3571,7 +3583,7 @@ impl DynonWindow {
             move |provider_row| {
                 dialog.set_response_enabled(
                     "save",
-                    system_row.selected() != u32::MAX && provider_row.selected() != u32::MAX,
+                    answered(system_row.selected()) && answered(provider_row.selected()),
                 );
             }
         ));
@@ -3589,10 +3601,14 @@ impl DynonWindow {
                     if response != "save" {
                         return;
                     }
-                    if let Some((nick, _)) = SYSTEM_TYPES.get(system_row.selected() as usize) {
+                    if let Some((nick, _)) =
+                        SYSTEM_TYPES.get(system_row.selected().wrapping_sub(1) as usize)
+                    {
                         win.save("system-type", *nick);
                     }
-                    if let Some((nick, _)) = PROVIDERS.get(provider_row.selected() as usize) {
+                    if let Some((nick, _)) =
+                        PROVIDERS.get(provider_row.selected().wrapping_sub(1) as usize)
+                    {
                         win.save("data-provider", *nick);
                     }
                 }

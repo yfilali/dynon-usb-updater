@@ -119,7 +119,7 @@ impl DupFile {
 pub fn scan_dup_files(dir: &Path, max_depth: usize) -> Vec<DupFile> {
     let mut found = Vec::new();
     collect_dups(dir, max_depth, &mut found);
-    found.sort_by(|a, b| b.rank().cmp(&a.rank()));
+    found.sort_by_key(|b| std::cmp::Reverse(b.rank()));
     found
 }
 

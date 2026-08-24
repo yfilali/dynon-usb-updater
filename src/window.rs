@@ -308,6 +308,70 @@ impl DynonWindow {
             move |_, _| win.clear_archive()
         ));
         self.add_action(&clear);
+
+        let preview = gio::SimpleAction::new("preview-archive", None);
+        preview.connect_activate(clone!(
+            #[weak(rename_to = win)] self,
+            move |_, _| win.show_archive_preview()
+        ));
+        self.add_action(&preview);
+
+        let show_in_files = gio::SimpleAction::new("show-in-files", Some(glib::VariantTy::STRING));
+        show_in_files.connect_activate(clone!(
+            #[weak(rename_to = win)] self,
+            move |_, param| {
+                if let Some(kind) = param.and_then(|v| v.str().map(str::to_string)) {
+                    win.show_source_in_files(&kind);
+                }
+            }
+        ));
+        self.add_action(&show_in_files);
+
+        let toggle_drive = gio::SimpleAction::new("toggle-drive", Some(glib::VariantTy::STRING));
+        toggle_drive.connect_activate(clone!(
+            #[weak(rename_to = win)] self,
+            move |_, param| {
+                if let Some(key) = param.and_then(|v| v.str().map(str::to_string)) {
+                    if let Some(toggle) = win.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.toggle.clone()) {
+                        toggle.set_active(!toggle.is_active());
+                    }
+                }
+            }
+        ));
+        self.add_action(&toggle_drive);
+
+        let show_drive_in_files = gio::SimpleAction::new("show-drive-in-files", Some(glib::VariantTy::STRING));
+        show_drive_in_files.connect_activate(clone!(
+            #[weak(rename_to = win)] self,
+            move |_, param| {
+                if let Some(key) = param.and_then(|v| v.str().map(str::to_string)) {
+                    win.show_drive_in_files(&key);
+                }
+            }
+        ));
+        self.add_action(&show_drive_in_files);
+
+        let choose_again = gio::SimpleAction::new("choose-drive-again", Some(glib::VariantTy::STRING));
+        choose_again.connect_activate(clone!(
+            #[weak(rename_to = win)] self,
+            move |_, param| {
+                if let Some(path) = param.and_then(|v| v.str().map(str::to_string)) {
+                    win.choose_folder_again(&path);
+                }
+            }
+        ));
+        self.add_action(&choose_again);
+
+        let remove_target = gio::SimpleAction::new("remove-drive-target", Some(glib::VariantTy::STRING));
+        remove_target.connect_activate(clone!(
+            #[weak(rename_to = win)] self,
+            move |_, param| {
+                if let Some(path) = param.and_then(|v| v.str().map(str::to_string)) {
+                    win.remove_drive_target(&path);
+                }
+            }
+        ));
+        self.add_action(&remove_target);
     }
 
     fn settings_string(&self, key: &str) -> Option<String> {
@@ -602,6 +666,11 @@ fn database_menu(kind: &str) -> gio::Menu {
     let menu = gio::Menu::new();
     menu.append(Some("Choose a Different File…"), Some("win.choose-folder"));
     menu.append(Some("Do Not Copy"), Some(&format!("win.skip-{kind}")));
+    let show = gio::Menu::new();
+    let item = gio::MenuItem::new(Some("Show in Files"), None);
+    item.set_action_and_target_value(Some("win.show-in-files"), Some(&kind.to_variant()));
+    show.append_item(&item);
+    menu.append_section(None, &show);
     menu
 }
 
@@ -609,7 +678,13 @@ fn plates_menu(has_archive: bool) -> gio::Menu {
     let menu = gio::Menu::new();
     if has_archive {
         menu.append(Some("Choose a Different Archive…"), Some("win.choose-archive"));
+        menu.append(Some("Preview Contents…"), Some("win.preview-archive"));
         menu.append(Some("Do Not Replace Plates"), Some("win.clear-archive"));
+        let show = gio::Menu::new();
+        let item = gio::MenuItem::new(Some("Show in Files"), None);
+        item.set_action_and_target_value(Some("win.show-in-files"), Some(&"plates".to_variant()));
+        show.append_item(&item);
+        menu.append_section(None, &show);
     } else {
         menu.append(Some("Choose an Archive…"), Some("win.choose-archive"));
     }
@@ -735,7 +810,7 @@ impl DynonWindow {
             let checked = if previously_checked.is_empty() {
                 // Safe default: only a recognised, writable, roomy drive that is
                 // not already current starts selected. An unrelated stick never does.
-                (ready && !up_to_date) || (remembered.contains(&key) && ready)
+                ready && (!up_to_date || remembered.contains(&key))
             } else {
                 previously_checked.contains(&key)
             };
@@ -810,6 +885,37 @@ impl DynonWindow {
             }
         ));
         tick.set_visible(toggle.is_active());
+
+        // Context menu: right-click, and the Menu key / Shift+F10 (§4.7, §6.4).
+        let key = drive.key();
+        let right_click = gtk::GestureClick::new();
+        right_click.set_button(3);
+        right_click.connect_pressed(clone!(
+            #[weak(rename_to = win)] self,
+            #[weak] toggle,
+            #[strong] key,
+            move |_, _, x, y| win.show_card_menu(&toggle, &key, x, y)
+        ));
+        toggle.add_controller(right_click);
+
+        let key_controller = gtk::EventControllerKey::new();
+        key_controller.connect_key_pressed(clone!(
+            #[weak(rename_to = win)] self,
+            #[weak] toggle,
+            #[strong] key,
+            #[upgrade_or] glib::Propagation::Proceed,
+            move |_, keyval, _, state| {
+                let is_menu = keyval == gtk::gdk::Key::Menu;
+                let is_shift_f10 = keyval == gtk::gdk::Key::F10 && state.contains(gtk::gdk::ModifierType::SHIFT_MASK);
+                if is_menu || is_shift_f10 {
+                    win.show_card_menu(&toggle, &key, 0.0, 0.0);
+                    glib::Propagation::Stop
+                } else {
+                    glib::Propagation::Proceed
+                }
+            }
+        ));
+        toggle.add_controller(key_controller);
 
         let card = Card { drive: drive.clone(), toggle, cycle_label, verdict_label, level };
         self.paint_card(&card, needed, target_cycle);
@@ -1068,10 +1174,8 @@ impl DynonWindow {
             Some("Select a drive to continue".into())
         } else if let Some(d) = bad_selected {
             Some(format!("{} can't be written to — deselect it to continue", d.name))
-        } else if let Some(d) = full_selected {
-            Some(format!("{} doesn't have room for this update — deselect it to continue", d.name))
         } else {
-            None
+            full_selected.map(|d| format!("{} doesn't have room for this update — deselect it to continue", d.name))
         };
 
         let label = match selected.len() {
@@ -2719,5 +2823,167 @@ fn duration_precise(seconds: u64) -> String {
         format!("{} min {} s", seconds / 60, seconds % 60)
     } else {
         format!("{} h {} min", seconds / 3600, (seconds % 3600) / 60)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Card context menu, "Show in Files", archive preview (D6)
+// ---------------------------------------------------------------------------
+
+impl DynonWindow {
+    fn show_card_menu(&self, toggle: &gtk::ToggleButton, key: &str, x: f64, y: f64) {
+        let Some(drive) = self.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.drive.clone()) else {
+            return;
+        };
+        let menu = gio::Menu::new();
+        let select_item = gio::MenuItem::new(Some(if toggle.is_active() { "Deselect" } else { "Select" }), None);
+        select_item.set_action_and_target_value(Some("win.toggle-drive"), Some(&key.to_variant()));
+        let core = gio::Menu::new();
+        core.append_item(&select_item);
+        let show_item = gio::MenuItem::new(Some("Show in Files"), None);
+        show_item.set_action_and_target_value(Some("win.show-drive-in-files"), Some(&key.to_variant()));
+        core.append_item(&show_item);
+        menu.append_section(None, &core);
+
+        if drive.kind == TargetKind::Folder {
+            let extra = gio::Menu::new();
+            let path = drive.path.to_string_lossy().to_string();
+            let again = gio::MenuItem::new(Some("Choose Again…"), None);
+            again.set_action_and_target_value(Some("win.choose-drive-again"), Some(&path.to_variant()));
+            extra.append_item(&again);
+            let remove = gio::MenuItem::new(Some("Remove"), None);
+            remove.set_action_and_target_value(Some("win.remove-drive-target"), Some(&path.to_variant()));
+            extra.append_item(&remove);
+            menu.append_section(None, &extra);
+        }
+
+        let popover = gtk::PopoverMenu::from_model(Some(&menu));
+        popover.set_parent(toggle);
+        popover.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+        popover.connect_closed(|p| p.unparent());
+        popover.popup();
+    }
+
+    fn show_source_in_files(&self, kind: &str) {
+        let path = {
+            let sources = self.imp().sources.borrow();
+            match kind {
+                "aviation" => sources.aviation.clone(),
+                "obstacle" => sources.obstacle.clone(),
+                "plates" => sources.archive.as_ref().map(|a| a.path.clone()),
+                _ => None,
+            }
+        };
+        if let Some(path) = path {
+            let file = gio::File::for_path(&path);
+            gtk::FileLauncher::new(Some(&file)).open_containing_folder(Some(self), gio::Cancellable::NONE, |_| {});
+        }
+    }
+
+    fn show_drive_in_files(&self, key: &str) {
+        let Some(drive) = self.imp().cards.borrow().iter().find(|c| c.drive.key() == key).map(|c| c.drive.clone()) else {
+            return;
+        };
+        let file = gio::File::for_path(&drive.path);
+        gtk::FileLauncher::new(Some(&file)).launch(Some(self), gio::Cancellable::NONE, |_| {});
+    }
+
+    fn remove_drive_target(&self, path: &str) {
+        let mut targets = self.manual_targets();
+        let before = targets.len();
+        targets.retain(|p| p != path);
+        if targets.len() != before {
+            self.save_manual_targets(&targets);
+            let name = PathBuf::from(path).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            let removed = path.to_string();
+            self.toast_action(&format!("{name} removed"), "Undo", clone!(
+                #[weak(rename_to = win)] self,
+                move || {
+                    let mut targets = win.manual_targets();
+                    if !targets.contains(&removed) {
+                        targets.push(removed.clone());
+                    }
+                    win.save_manual_targets(&targets);
+                    win.refresh_drives();
+                }
+            ));
+            self.refresh_drives();
+        }
+    }
+
+    /// D6: preview of the resulting destination paths, with the wrapper switch.
+    fn show_archive_preview(&self) {
+        let Some(archive) = self.imp().sources.borrow().archive.clone() else { return };
+        let strip_current = self.imp().sources.borrow().strip_wrapper;
+
+        let group = adw::PreferencesGroup::builder()
+            .description("Files will be written to ChartData/Plates on each drive.")
+            .build();
+
+        let wrapper_row = archive.wrapper.clone().map(|folder| {
+            let row = adw::SwitchRow::builder()
+                .title("Remove Extra Folder")
+                .subtitle(format!(
+                    "Everything in this archive sits inside “{folder}”. Remove it so plates land directly in ChartData/Plates."
+                ))
+                .active(strip_current)
+                .build();
+            group.add(&row);
+            row
+        });
+
+        let list = gtk::ListBox::builder().css_classes(["boxed-list"]).selection_mode(gtk::SelectionMode::None).build();
+        let footer = gtk::Label::builder().css_classes(["caption", "dimmed"]).xalign(0.0).build();
+
+        let refill = clone!(
+            #[weak] list,
+            #[weak] footer,
+            #[strong] archive,
+            move |strip: bool| {
+                while let Some(child) = list.first_child() {
+                    list.remove(&child);
+                }
+                let members = archive.members_stripped(strip);
+                for member in members.iter().take(20) {
+                    let label = gtk::Label::builder()
+                        .label(member.dest.to_string_lossy())
+                        .xalign(0.0)
+                        .css_classes(["monospace", "caption"])
+                        .margin_top(4).margin_bottom(4).margin_start(8).margin_end(8)
+                        .build();
+                    list.append(&label);
+                }
+                let remaining = members.len().saturating_sub(20);
+                footer.set_text(&format!(
+                    "…and {} more · {} junk files skipped",
+                    job::group(remaining as u64),
+                    job::group(archive.junk_skipped as u64)
+                ));
+            }
+        );
+        refill(strip_current);
+        if let Some(row) = &wrapper_row {
+            row.connect_active_notify(clone!(
+                #[weak(rename_to = win)] self,
+                #[strong] refill,
+                move |row| {
+                    win.imp().sources.borrow_mut().strip_wrapper = row.is_active();
+                    refill(row.is_active());
+                }
+            ));
+        }
+
+        let content = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(12).margin_top(12).margin_bottom(12).margin_start(12).margin_end(12).build();
+        content.append(&group);
+        content.append(&list);
+        content.append(&footer);
+        let scroller = gtk::ScrolledWindow::builder().child(&content).vexpand(true).build();
+
+        let toolbar = adw::ToolbarView::new();
+        toolbar.add_top_bar(&adw::HeaderBar::new());
+        toolbar.set_content(Some(&scroller));
+
+        let dialog = adw::Dialog::builder().title("Archive Contents").content_width(520).content_height(480).child(&toolbar).build();
+        dialog.present(Some(self));
     }
 }

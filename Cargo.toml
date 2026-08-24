@@ -11,8 +11,11 @@ repository = "https://github.com/yfilali/dynon-usb-updater"
 zip = { version = "4", default-features = false, features = ["deflate"] }
 
 [dependencies]
-gtk = { package = "gtk4", version = "0.11", features = ["v4_22"] }
-adw = { package = "libadwaita", version = "0.9", features = ["v1_7", "gtk_v4_22"] }
+# Pinned to what the org.gnome.Platform//49 Flatpak runtime actually ships
+# (GTK 4.20.4), not the newer GTK on this dev machine's host — v4_10 is the
+# floor AdwActionRow needs to implement Gtk.Accessible (see window.rs).
+gtk = { package = "gtk4", version = "0.11", features = ["v4_20"] }
+adw = { package = "libadwaita", version = "0.9", features = ["v1_7", "gtk_v4_20"] }
 zip = { version = "4", default-features = false, features = ["deflate"] }
 sha2 = "0.10"
 regex = "1"

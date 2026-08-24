@@ -59,6 +59,12 @@ pub(crate) struct Sources {
     package_mode: bool,
     package: Option<scan::Package>,
     skip_package: bool,
+    /// True when `package` was found in the checker's download folder
+    /// rather than the folder the user is looking at — the signal the
+    /// "a newer cycle is ready" banner uses so it only fires for something
+    /// the checker actually surfaced, not the routine case of an older
+    /// drive next to this cycle's normal downloaded files.
+    package_from_downloads: bool,
     archive: Option<Archive>,
     archive_error: Option<String>,
     /// The file the failed read attempt was for, so the banner can name it.
@@ -569,6 +575,15 @@ impl DynonWindow {
         }
     }
 
+    /// Where the checker downloads packages: `download-folder` when set,
+    /// otherwise the same XDG Downloads folder the source scan defaults to.
+    fn download_folder_dir(&self) -> Option<PathBuf> {
+        match self.settings_string("download-folder") {
+            Some(p) => Some(PathBuf::from(p)),
+            None => default_download_dir(),
+        }
+    }
+
     fn preference(&self, key: &str, fallback: bool) -> bool {
         self.imp()
             .settings
@@ -607,6 +622,12 @@ impl DynonWindow {
     fn load_folder(&self, folder: &std::path::Path) {
         let imp = self.imp();
         let dups = scan::scan_dup_files(folder, 3);
+        // The checker (when it has run) downloads packages into a folder of
+        // its own, which is usually not the folder being scanned here — a
+        // package it just fetched should appear as a source exactly like
+        // one sitting in the scanned folder, so it is folded into the same
+        // candidate list rather than requiring the user to go find it.
+        let download_dir = self.download_folder_dir();
         {
             let mut sources = imp.sources.borrow_mut();
             sources.aviation = scan::newest(&dups, DupKind::Aviation).map(|d| d.path.clone());
@@ -618,9 +639,32 @@ impl DynonWindow {
             // a combined .duc package rather than separate Airmate files.
             sources.package_mode = sources.aviation.is_none() && sources.obstacle.is_none();
             sources.package = if sources.package_mode {
-                scan::scan_packages(folder).into_iter().next()
+                let mut candidates = scan::scan_packages(folder);
+                if download_dir.as_deref() != Some(folder) {
+                    if let Some(dir) = &download_dir {
+                        candidates.extend(scan::scan_packages(dir));
+                    }
+                }
+                candidates.sort_by(|a, b| {
+                    b.aviation
+                        .cmp(&a.aviation)
+                        .then(b.obstacle.cmp(&a.obstacle))
+                        .then(b.modified.cmp(&a.modified))
+                });
+                candidates.into_iter().next()
             } else {
                 None
+            };
+            sources.package_from_downloads = match (&sources.package, &download_dir) {
+                (Some(pkg), Some(dir)) => {
+                    pkg.path.parent() != Some(folder) && {
+                        pkg.path
+                            .parent()
+                            .map(|p| p == dir.as_path())
+                            .unwrap_or(false)
+                    }
+                }
+                _ => false,
             };
             sources.dups = dups;
             sources.folder = Some(folder.to_path_buf());
@@ -1859,6 +1903,31 @@ impl DynonWindow {
                 "No SkyView drives found. Select a drive to write to it anyway.".into(),
                 None,
             ));
+        }
+        // The checker found and downloaded something newer than a connected
+        // drive holds. Lowest priority, purely informational — every card
+        // already shows its own "Cycle X -> Y" line — and deliberately
+        // scoped to `package_from_downloads` so this never fires for the
+        // routine case (a normal folder scan next to an older drive, which
+        // the ready-state summary beneath the button already covers).
+        if picked.is_none() && sources.package_from_downloads {
+            if let Some(target) = sources.cycle() {
+                if let Some(card) = cards.iter().find(|c| {
+                    c.drive
+                        .installed_cycle
+                        .map(|installed| installed < target)
+                        .unwrap_or(false)
+                }) {
+                    picked = Some((
+                        format!(
+                            "Cycle {target} is ready. {} is still on Cycle {}.",
+                            card.drive.name,
+                            card.drive.installed_cycle.unwrap()
+                        ),
+                        None,
+                    ));
+                }
+            }
         }
         // P0: first run.
         if picked.is_none() && !self.preference("first-run-done", false) {

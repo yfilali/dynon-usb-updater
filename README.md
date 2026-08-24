@@ -2,7 +2,9 @@
 
 Prepare the USB drives you carry to the aircraft: this app copies each AIRAC
 cycle's aviation and obstacle databases onto them and replaces their approach
-plates, for one drive or several at once.
+plates, for one drive or several at once. It can also check Dynon's own site
+for a new cycle and download it for you — it only ever downloads; installing
+a database to a drive still always takes you pressing Update.
 
 [![CI](https://github.com/yfilali/dynon-usb-updater/actions/workflows/ci.yml/badge.svg)](https://github.com/yfilali/dynon-usb-updater/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](COPYING)
@@ -12,12 +14,14 @@ plates, for one drive or several at once.
 ## What it does
 
 Every cycle you download three things from your chart provider: an aviation
-database, an obstacle database, and a plates archive. For each USB drive you
-select, this app:
+database, an obstacle database, and a plates archive. Some providers (Airmate)
+ship the two databases as separate `.dup` files; Dynon ships its own free US
+data as one combined `.duc` package containing both. Either way, for each USB
+drive you select, this app:
 
-1. copies the newest **aviation database** `.dup` to the drive,
-2. copies the newest **obstacle database** `.dup` to the drive,
-3. **erases `ChartData/Plates` and rebuilds it** from the plates archive.
+1. copies the newest **aviation and obstacle databases** to the drive —
+   two `.dup` files, or one `.duc` package, whichever you're using,
+2. **erases `ChartData/Plates` and rebuilds it** from the plates archive.
 
 It works out which files are newest by their cycle number, recognises which of
 your USB drives are SkyView drives, checks each one has room before it starts,
@@ -61,19 +65,56 @@ drive. Nothing disappears on a timer.
 
 ![The result page](screenshots/result.png)
 
+## Checking for updates automatically
+
+The first time you run the app, it asks two questions it will never guess for
+you: whether your aircraft is **certified** (an STC'd install in a
+type-certificated aircraft) or **Experimental/LSA**, and which provider your
+database comes from. Both are changeable later in **Preferences → Aircraft**.
+
+| Provider | Automatic download |
+| --- | --- |
+| Dynon | Yes — Dynon publishes its US aviation/obstacle data free, and the app checks its site directly |
+| Airmate | No — [airmate.aero](https://www.airmate.aero) requires a subscription and its own download step |
+| Seattle Avionics | No — [seattleavionics.com](https://www.seattleavionics.com) |
+| Other | No |
+
+Only Dynon is wired up: for anyone else, Preferences says plainly that
+automatic download isn't available and links to that provider's own site.
+
+For Dynon, **Preferences → Checking for Updates** lets you set how often it
+checks (manual, daily, or weekly) and where it saves what it finds (your
+Downloads folder by default). When it's due, it fetches Dynon's page for your
+aircraft type — the certified page lists a current package and an upcoming
+one with separate validity dates, and the app picks whichever one is actually
+valid today, not just whichever the page happens to label "current" — and
+downloads a new cycle the moment one becomes valid, notifying you when it
+does. **It never installs anything to a drive on its own**; a downloaded
+package shows up as a source next time you open the app, exactly like a file
+sitting in your Downloads folder, and from there it's the same Update button
+as always.
+
+With a check interval set, closing the window doesn't quit the app — it
+keeps running in the background so it can keep checking, and shows up in
+GNOME's Quick Settings → Background Apps. **Quit**, in the app menu or
+`Ctrl+Q`, is the deliberate way to actually exit.
+
 ## What it will and will not touch on your drives
 
 This matters more than anything else in this README, so it is explicit:
 
 **It writes:**
 
-- the two `.dup` database files, at the top level of the drive
+- the two `.dup` database files, or one combined `.duc` package, at the top
+  level of the drive
 - everything inside `ChartData/Plates`
 
 **It deletes:**
 
-- older aviation and obstacle `.dup` files, and only those, and only when
-  *Replace Older Databases* is on (it is by default)
+- older aviation and obstacle `.dup` files, or older `.duc` database
+  packages, and only those — a `.duc` is only ever deleted when it parses as
+  a database package itself, never a firmware update sitting next to it —
+  and only when *Replace Older Databases* is on (it is by default)
 - the entire contents of `ChartData/Plates`, and only when you have selected a
   plates archive
 
@@ -141,6 +182,12 @@ it. Databases are unaffected: they are written whole or not at all.
 kept. The **Details** section shows the current run, with buttons to copy or
 save it.
 
+**The window closed but the app is still running.** That's expected once a
+check interval is set — it's checking for updates in the background, and
+will show up in GNOME's Quick Settings → Background Apps. Reopen it by
+launching the app again, or use **Quit** (app menu, or `Ctrl+Q`) to actually
+exit.
+
 ## Building
 
 Requires Rust 1.80+, GTK 4.16+, and libadwaita 1.7+.
@@ -160,15 +207,20 @@ GSETTINGS_SCHEMA_DIR=data ./target/debug/dynon-usb-updater
 ```
 
 Run the tests with `cargo test`. The suite covers cycle parsing, archive
-handling (including path-traversal rejection), drive recognition, and full
-update runs against fixture directories. Two tests check against real hardware
-and real cycle files and skip themselves when those are absent.
+handling (including path-traversal rejection), drive recognition, the
+provider-page parser (against saved HTML fixtures — no test touches the
+network), and full update runs against fixture directories. A few tests check
+against real hardware and real cycle files and skip themselves when those are
+absent.
 
 | Path | What it is |
 | --- | --- |
-| `src/scan.rs` | Cycle parsing, database discovery, archive inspection |
+| `src/scan.rs` | Cycle parsing, database and `.duc` package discovery, archive inspection |
 | `src/drive.rs` | Drive discovery, SkyView recognition, sandbox detection |
 | `src/job.rs` | The update engine — copy, verify, erase, extract |
+| `src/checker.rs` | Parses Dynon's pages and downloads a new cycle — never installs one |
+| `src/application.rs` | App lifecycle: background hold, the checker's schedule, notifications |
+| `src/background.rs` | The XDG Background portal request |
 | `src/window.rs`, `src/ui/` | The interface |
 | `docs/UX-SPEC.md` | The design this implements, and its acceptance criteria |
 | `docs/PUBLISHING.md` | Packaging and release process |

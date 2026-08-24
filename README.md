@@ -158,6 +158,22 @@ removed so plates land in the right place, archive litter (`.DS_Store`,
 `Thumbs.db`, `__MACOSX`, …) is skipped, and any entry with an absolute path or
 `..` in it causes the archive to be rejected outright.
 
+## Running in the background
+
+With a check interval set, closing the window leaves the app running so it can
+keep watching for a new cycle. It stays reachable in two ways:
+
+- **A system tray icon**, published as a StatusNotifierItem — the freedesktop
+  standard. KDE Plasma, XFCE, Cinnamon, Budgie and LXQt host it out of the box;
+  GNOME needs the AppIndicator extension. The icon's menu offers *Show Window*,
+  *Check for Updates Now* and *Quit*. Turn it off under Preferences → Checking.
+- **A background app entry.** Where no tray host is running, the app registers
+  through the XDG Background portal instead and appears in GNOME's Quick
+  Settings under *Background Apps*, with its own Quit entry.
+
+Either way *Quit* is the only thing that stops it — closing the window never
+leaves an unreachable process behind.
+
 ## Troubleshooting
 
 **My drive doesn't appear.** If you installed from Flathub, the sandbox may not

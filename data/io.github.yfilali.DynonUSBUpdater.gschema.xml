@@ -102,6 +102,15 @@
       <summary>Automatic download folder</summary>
       <description>Where checked-for updates are downloaded. Empty means the XDG Downloads folder.</description>
     </key>
+    <key name="show-tray-icon" type="b">
+      <default>true</default>
+      <summary>Show an icon in the system tray</summary>
+      <description>
+        Publish a StatusNotifierItem so the application stays reachable after
+        its window is closed. Desktops without a StatusNotifier host show no
+        icon; the application then runs as a background app instead.
+      </description>
+    </key>
     <key name="autostart" type="b">
       <default>true</default>
       <summary>Start in the background at login</summary>

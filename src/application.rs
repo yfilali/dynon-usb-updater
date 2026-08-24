@@ -32,6 +32,11 @@ mod imp {
         /// "raise the window" — the timers must be set up exactly once per
         /// process, not once per activation.
         pub checker_scheduled: Cell<bool>,
+        /// The published StatusNotifierItem, when the tray is enabled and a
+        /// host accepted it. `None` means no icon is showing — either the
+        /// setting is off or this desktop has no tray — and closing the
+        /// window falls back to the background-app behaviour.
+        pub tray: RefCell<Option<crate::tray::Tray>>,
     }
 
     #[glib::object_subclass]
@@ -60,6 +65,7 @@ mod imp {
             window.present();
             app.sync_background_hold();
             app.install_checker_schedule();
+            app.sync_tray();
         }
     }
     impl GtkApplicationImpl for DynonApplication {}
@@ -115,6 +121,20 @@ impl DynonApplication {
     }
 
     pub fn install_app_actions(&self) {
+        // Check on demand, from the tray menu or elsewhere. The periodic
+        // schedule stays as it is; this just runs one now.
+        let check_now = gio::SimpleAction::new("check-now", None);
+        check_now.connect_activate(glib::clone!(
+            #[weak(rename_to = app)]
+            self,
+            move |_, _| {
+                glib::spawn_future_local(async move {
+                    app.run_checker_once().await;
+                });
+            }
+        ));
+        self.add_action(&check_now);
+
         let quit = gio::SimpleAction::new("quit", None);
         quit.connect_activate(glib::clone!(
             #[weak(rename_to = app)]
@@ -174,7 +194,7 @@ impl DynonApplication {
     /// and whenever `request_background` is called directly (e.g. after the
     /// `autostart` setting changes in Preferences).
     pub fn sync_background_hold(&self) {
-        let should_hold = background_wanted();
+        let should_hold = background_wanted() || self.tray_active();
         let imp = self.imp();
         let currently_held = imp.held.borrow().is_some();
         if should_hold && !currently_held {
@@ -183,6 +203,65 @@ impl DynonApplication {
         } else if !should_hold && currently_held {
             imp.held.replace(None);
         }
+    }
+
+    /// Whether an icon is currently showing in a tray.
+    pub fn tray_active(&self) -> bool {
+        self.imp().tray.borrow().is_some()
+    }
+
+    /// Publish or withdraw the tray item to match the `show-tray-icon`
+    /// setting. Publishing is attempted on every desktop; where no
+    /// StatusNotifier host is running it simply fails and the application
+    /// stays a background app instead.
+    pub fn sync_tray(&self) {
+        let wanted = app_settings()
+            .map(|s| s.boolean("show-tray-icon"))
+            .unwrap_or(true);
+        let showing = self.tray_active();
+        if wanted && !showing {
+            let app = self.clone();
+            glib::spawn_future_local(async move {
+                let Some(mut tray) = crate::tray::Tray::publish("Ready").await else {
+                    return;
+                };
+                if let Some(commands) = tray.take_commands() {
+                    app.watch_tray_commands(commands);
+                }
+                app.imp().tray.replace(Some(tray));
+                // An icon keeps the app reachable after the window closes, so
+                // the process must outlive the window as it does in the
+                // background-app case.
+                app.sync_background_hold();
+            });
+        } else if !wanted && showing {
+            if let Some(tray) = self.imp().tray.borrow().as_ref() {
+                tray.shutdown();
+            }
+            self.imp().tray.replace(None);
+            self.sync_background_hold();
+        }
+    }
+
+    /// The tray runs on its own D-Bus task, so its menu choices arrive on a
+    /// channel and are applied here on the main loop.
+    fn watch_tray_commands(&self, commands: std::sync::mpsc::Receiver<crate::tray::TrayCommand>) {
+        let app = self.clone();
+        glib::timeout_add_local(std::time::Duration::from_millis(200), move || {
+            while let Ok(command) = commands.try_recv() {
+                match command {
+                    crate::tray::TrayCommand::Show => app.activate(),
+                    crate::tray::TrayCommand::CheckNow => {
+                        app.activate_action("check-now", None);
+                    }
+                    crate::tray::TrayCommand::Quit => {
+                        app.activate_action("quit", None);
+                        return glib::ControlFlow::Break;
+                    }
+                }
+            }
+            glib::ControlFlow::Continue
+        });
     }
 
     /// Ask the XDG Background portal for permission to run in the

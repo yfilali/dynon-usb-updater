@@ -3775,6 +3775,33 @@ impl DynonWindow {
         ));
         checking.add(&autostart_row);
 
+        let tray_row = adw::SwitchRow::builder()
+            .title("Show Icon in the System Tray")
+            .subtitle(if crate::tray::host_available() {
+                "Keeps the app reachable after you close its window."
+            } else {
+                // Stated as a property of the desktop, not a fault: the switch
+                // stays available because a tray host can be added later.
+                "This desktop has no system tray. GNOME needs the AppIndicator \
+                 extension; the app runs as a background app meanwhile."
+            })
+            .active(self.preference("show-tray-icon", true))
+            .build();
+        tray_row.connect_active_notify(clone!(
+            #[weak(rename_to = win)]
+            self,
+            move |row| {
+                win.save("show-tray-icon", row.is_active());
+                if let Some(app) = win
+                    .application()
+                    .and_downcast::<crate::application::DynonApplication>()
+                {
+                    app.sync_tray();
+                }
+            }
+        ));
+        checking.add(&tray_row);
+
         let download_folder_row = adw::ActionRow::builder()
             .title("Download Folder")
             .subtitle(download_folder_label(

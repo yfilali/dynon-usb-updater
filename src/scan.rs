@@ -74,7 +74,10 @@ pub enum DupKind {
 
 pub fn classify(name: &str) -> DupKind {
     let lower = name.to_ascii_lowercase();
-    if lower.contains("obst") {
+    // Providers differ: Dynon ships `ob_data_FAA_2604.dup`, Airmate ships
+    // `airmate_obstacle_data_us_2608_...dup`. Matching only "obst" misses
+    // Dynon's entirely.
+    if lower.contains("obst") || lower.contains("ob_data") || lower.starts_with("ob_") {
         DupKind::Obstacle
     } else if lower.contains("av_data")
         || lower.contains("avdata")
@@ -380,4 +383,106 @@ pub fn rank_plate_archives(folder: &Path, target: Option<Cycle>) -> Vec<PathBuf>
 
     scored.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)));
     scored.into_iter().map(|(_, _, path)| path).collect()
+}
+
+// ---------------------------------------------------------------------------
+// Database packages (.duc)
+// ---------------------------------------------------------------------------
+
+/// A Dynon `.duc` package holding the aviation and obstacle databases, as
+/// published on dynonavionics.com / dynoncertified.com.
+///
+/// `.duc` is Dynon's generic container — firmware updates use it too — so a
+/// package is only treated as databases when it actually carries them. The
+/// filename alone is not trusted.
+#[derive(Debug, Clone)]
+pub struct Package {
+    pub path: PathBuf,
+    pub aviation: Option<Cycle>,
+    pub obstacle: Option<Cycle>,
+    pub size: u64,
+    pub modified: SystemTime,
+}
+
+impl Package {
+    pub fn name(&self) -> String {
+        self.path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    }
+
+    /// How this package is described in the interface. The two cycles usually
+    /// differ — Dynon's own file pairs aviation 2608 with obstacle 2604 — so
+    /// collapsing them to one number would be wrong.
+    pub fn version(&self) -> String {
+        match (self.aviation, self.obstacle) {
+            (Some(av), Some(ob)) if av == ob => format!("Cycle {av}"),
+            (Some(av), Some(ob)) => format!("Aviation {av} · Obstacles {ob}"),
+            (Some(av), None) => format!("Aviation {av}"),
+            (None, Some(ob)) => format!("Obstacles {ob}"),
+            (None, None) => "Unknown cycle".into(),
+        }
+    }
+}
+
+/// Read a `.duc` and report the databases it contains, or `None` when it holds
+/// something else (a firmware package, say).
+pub fn read_package(path: &Path) -> Option<Package> {
+    let meta = fs::metadata(path).ok()?;
+    let file = fs::File::open(path).ok()?;
+    let mut zip = zip::ZipArchive::new(file).ok()?;
+
+    let mut aviation = None;
+    let mut obstacle = None;
+    for index in 0..zip.len() {
+        let Ok(entry) = zip.by_index_raw(index) else {
+            continue;
+        };
+        let name = entry
+            .name()
+            .rsplit('/')
+            .next()
+            .unwrap_or_default()
+            .to_string();
+        match classify(&name) {
+            DupKind::Aviation => aviation = aviation.max(parse_cycle(&name)),
+            DupKind::Obstacle => obstacle = obstacle.max(parse_cycle(&name)),
+            DupKind::Other => {}
+        }
+    }
+    if aviation.is_none() && obstacle.is_none() {
+        return None;
+    }
+    Some(Package {
+        path: path.to_path_buf(),
+        aviation,
+        obstacle,
+        size: meta.len(),
+        modified: meta.modified().unwrap_or(SystemTime::UNIX_EPOCH),
+    })
+}
+
+/// Database packages in a folder, newest aviation cycle first.
+pub fn scan_packages(dir: &Path) -> Vec<Package> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut found: Vec<Package> = entries
+        .flatten()
+        .filter(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .to_ascii_lowercase()
+                .ends_with(".duc")
+        })
+        .filter_map(|e| read_package(&e.path()))
+        .collect();
+    found.sort_by(|a, b| {
+        b.aviation
+            .cmp(&a.aviation)
+            .then(b.obstacle.cmp(&a.obstacle))
+            .then(b.modified.cmp(&a.modified))
+    });
+    found
 }

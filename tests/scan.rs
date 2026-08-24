@@ -42,6 +42,9 @@ fn classification_and_ranking() {
         DupKind::Obstacle
     );
     assert_eq!(scan::classify("terrain.dup"), DupKind::Other);
+    // Both providers' obstacle naming must be recognised.
+    assert_eq!(scan::classify("ob_data_FAA_2604.dup"), DupKind::Obstacle);
+    assert_eq!(scan::classify("av_data_FAA_2608.dup"), DupKind::Aviation);
 
     let dir = tmpdir("rank");
     for name in [
@@ -206,4 +209,70 @@ fn the_real_downloads_folder_picks_the_right_archive() {
             .map(|n| n.to_string_lossy().into_owned()),
         Some("US-Plates-2608.zip".to_string())
     );
+}
+
+fn write_duc(path: &std::path::Path, names: &[&str]) {
+    let mut zip = zip::ZipWriter::new(File::create(path).unwrap());
+    let opts: zip::write::FileOptions<()> = zip::write::FileOptions::default();
+    for name in names {
+        zip.start_file(*name, opts).unwrap();
+        zip.write_all(b"payload").unwrap();
+    }
+    zip.finish().unwrap();
+}
+
+#[test]
+fn a_database_package_reports_both_cycles_separately() {
+    let dir = tmpdir("duc");
+    let path = dir.join("FAA_av2608_ob2604.duc");
+    write_duc(&path, &["av_data_FAA_2608.dup", "ob_data_FAA_2604.dup"]);
+
+    let package = scan::read_package(&path).expect("should be recognised as databases");
+    assert_eq!(package.aviation.unwrap().label(), "2608");
+    assert_eq!(package.obstacle.unwrap().label(), "2604");
+    // The two cycles differ in Dynon's own file, so one number will not do.
+    assert_eq!(package.version(), "Aviation 2608 · Obstacles 2604");
+}
+
+#[test]
+fn a_firmware_package_is_not_mistaken_for_databases() {
+    let dir = tmpdir("duc-firmware");
+    let path = dir.join("SkyView_16.4.4.duc");
+    write_duc(&path, &["firmware.bin", "release_notes.txt"]);
+    assert!(
+        scan::read_package(&path).is_none(),
+        ".duc is Dynon's generic container; only database packages may be offered"
+    );
+}
+
+#[test]
+fn packages_are_ranked_newest_first() {
+    let dir = tmpdir("duc-rank");
+    write_duc(
+        &dir.join("FAA_av2607_ob2604.duc"),
+        &["av_data_FAA_2607.dup", "ob_data_FAA_2604.dup"],
+    );
+    write_duc(
+        &dir.join("FAA_av2608_ob2604.duc"),
+        &["av_data_FAA_2608.dup", "ob_data_FAA_2604.dup"],
+    );
+    write_duc(&dir.join("SkyView_16.4.4.duc"), &["firmware.bin"]);
+
+    let found = scan::scan_packages(&dir);
+    assert_eq!(found.len(), 2, "the firmware package must be excluded");
+    assert_eq!(found[0].aviation.unwrap().label(), "2608");
+    assert_eq!(found[1].aviation.unwrap().label(), "2607");
+}
+
+/// Runs against a real Dynon package when one is available:
+/// DYNON_TEST_DUC=/path/to/FAA_av2608_ob2604.duc cargo test
+#[test]
+fn the_real_dynon_package_parses() {
+    let Ok(path) = std::env::var("DYNON_TEST_DUC") else {
+        eprintln!("skipping: set DYNON_TEST_DUC to a real .duc to run this");
+        return;
+    };
+    let package = scan::read_package(std::path::Path::new(&path)).expect("real package");
+    assert!(package.aviation.is_some() && package.obstacle.is_some());
+    eprintln!("{} -> {}", package.name(), package.version());
 }

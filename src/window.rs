@@ -941,6 +941,15 @@ fn abbreviate(path: &std::path::Path) -> String {
     }
 }
 
+fn download_folder_label(setting: Option<String>) -> String {
+    match setting {
+        Some(path) if !path.is_empty() => abbreviate(std::path::Path::new(&path)),
+        _ => default_download_dir()
+            .map(|p| format!("{} (default)", abbreviate(&p)))
+            .unwrap_or_else(|| "~/Downloads (default)".into()),
+    }
+}
+
 fn default_download_dir() -> Option<PathBuf> {
     glib::user_special_dir(glib::UserDirectory::Downloads)
         .filter(|p| p.is_dir())
@@ -3636,6 +3645,115 @@ impl DynonWindow {
             });
         }
         page.add(&aircraft);
+
+        let checking = adw::PreferencesGroup::builder()
+            .title("Checking for Updates")
+            .description(
+                "Only available for Dynon. Never installs anything to a drive — it only downloads.",
+            )
+            .build();
+
+        let current_interval = self
+            .settings_string("check-interval")
+            .unwrap_or_else(|| "daily".into());
+        let interval_list = gtk::StringList::new(&["Manual", "Daily", "Weekly"]);
+        let interval_row = adw::ComboRow::builder()
+            .title("Check Frequency")
+            .model(&interval_list)
+            .selected(match current_interval.as_str() {
+                "manual" => 0,
+                "weekly" => 2,
+                _ => 1,
+            })
+            .build();
+        interval_row.connect_selected_notify(clone!(
+            #[weak(rename_to = win)]
+            self,
+            move |row| {
+                let nick = match row.selected() {
+                    0 => "manual",
+                    2 => "weekly",
+                    _ => "daily",
+                };
+                win.save("check-interval", nick);
+                if let Some(app) = win
+                    .application()
+                    .and_downcast::<crate::application::DynonApplication>()
+                {
+                    app.sync_background_hold();
+                }
+            }
+        ));
+        checking.add(&interval_row);
+
+        let autostart_row = adw::SwitchRow::builder()
+            .title("Start at Login")
+            .subtitle("Ask the system to launch the app in the background at login, so it can keep checking.")
+            .active(self.preference("autostart", true))
+            .build();
+        autostart_row.connect_active_notify(clone!(
+            #[weak(rename_to = win)]
+            self,
+            move |row| {
+                win.save("autostart", row.is_active());
+                if let Some(app) = win
+                    .application()
+                    .and_downcast::<crate::application::DynonApplication>()
+                {
+                    app.request_background();
+                }
+            }
+        ));
+        checking.add(&autostart_row);
+
+        let download_folder_row = adw::ActionRow::builder()
+            .title("Download Folder")
+            .subtitle(download_folder_label(
+                self.settings_string("download-folder"),
+            ))
+            .build();
+        let choose_download_folder = gtk::Button::builder()
+            .label("Change…")
+            .valign(gtk::Align::Center)
+            .css_classes(["flat"])
+            .build();
+        choose_download_folder.connect_clicked(clone!(
+            #[weak(rename_to = win)]
+            self,
+            #[weak]
+            download_folder_row,
+            move |_| {
+                let dialog = gtk::FileDialog::builder()
+                    .title("Select the Automatic Download Folder")
+                    .modal(true)
+                    .build();
+                dialog.select_folder(
+                    Some(&win),
+                    gio::Cancellable::NONE,
+                    clone!(
+                        #[weak]
+                        download_folder_row,
+                        #[weak(rename_to = win)]
+                        win,
+                        move |result| {
+                            if let Ok(file) = result {
+                                if let Some(path) = file.path() {
+                                    let text = path.to_string_lossy().to_string();
+                                    win.save("download-folder", text.clone());
+                                    download_folder_row
+                                        .set_subtitle(&download_folder_label(Some(text)));
+                                }
+                            }
+                        }
+                    ),
+                );
+            }
+        ));
+        download_folder_row.add_suffix(&choose_download_folder);
+        download_folder_row.set_activatable_widget(Some(&choose_download_folder));
+        checking.add(&download_folder_row);
+
+        page.add(&checking);
 
         let updating = adw::PreferencesGroup::builder().title("Updating").build();
         let verify = adw::SwitchRow::builder()

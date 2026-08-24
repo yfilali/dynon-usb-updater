@@ -12,7 +12,7 @@ use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::gio;
 use gtk::glib;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 const APP_ID: &str = "io.github.yfilali.DynonUSBUpdater";
 
@@ -27,6 +27,11 @@ mod imp {
         /// means currently held, and dropping it (setting back to `None`)
         /// releases it — there is no separate `release()` call to balance.
         pub held: RefCell<Option<gio::ApplicationHoldGuard>>,
+        /// Whether the checker's heartbeat timers have already been
+        /// registered. `activate()` fires on every launch and every
+        /// "raise the window" — the timers must be set up exactly once per
+        /// process, not once per activation.
+        pub checker_scheduled: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -54,6 +59,7 @@ mod imp {
                 .unwrap_or_else(|| DynonWindow::new(app.upcast_ref::<adw::Application>()));
             window.present();
             app.sync_background_hold();
+            app.install_checker_schedule();
         }
     }
     impl GtkApplicationImpl for DynonApplication {}
@@ -159,8 +165,8 @@ impl DynonApplication {
     }
 
     /// Reflects `check-interval` into `GApplication::hold()`, so the process
-    /// (and, once Phase 3's checker exists, its periodic checking) survives
-    /// every window closing. Safe to call any number of times — `held`
+    /// (and its periodic checking) survives every window closing. Safe to
+    /// call any number of times — `held`
     /// tracks whether an extra use-count is currently outstanding so
     /// hold/release stay balanced. On the transition into holding, also
     /// requests the XDG Background portal once (see `request_background`);
@@ -199,14 +205,198 @@ impl DynonApplication {
         });
     }
 
-    /// Show a `GNotification` whose default action raises the window —
-    /// used by the periodic checker (Phase 3) for "a new cycle is
-    /// available" and "a download finished".
+    /// Show a `GNotification` whose default action raises the window — used
+    /// by the periodic checker for "a new cycle is available" and "a
+    /// download finished".
     pub fn notify(&self, id: &str, title: &str, body: &str) {
         let notification = gio::Notification::new(title);
         notification.set_body(Some(body));
         notification.set_default_action("app.raise-window");
         self.send_notification(Some(id), &notification);
+    }
+
+    /// One heartbeat shortly after startup, then hourly — coarse on purpose,
+    /// since the coarsest interval a user can choose (`weekly`) tolerates an
+    /// hour of slack easily, and it means daily/weekly never need their own
+    /// separate timers. `maybe_run_checker` itself decides, every time,
+    /// whether an actual check is due.
+    pub fn install_checker_schedule(&self) {
+        if self.imp().checker_scheduled.replace(true) {
+            return; // already running from an earlier activate()
+        }
+        glib::timeout_add_seconds_local_once(
+            30,
+            glib::clone!(
+                #[weak(rename_to = app)]
+                self,
+                move || app.maybe_run_checker()
+            ),
+        );
+        glib::timeout_add_seconds_local(
+            3600,
+            glib::clone!(
+                #[weak(rename_to = app)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    app.maybe_run_checker();
+                    glib::ControlFlow::Continue
+                }
+            ),
+        );
+    }
+
+    /// Runs the checker if — and only if — every gate passes: a provider
+    /// that supports it, a real interval (not `manual`), enough time
+    /// actually elapsed since the last check, and a network that is up and
+    /// not metered. Never installs anything to a drive; at most it
+    /// downloads a file and shows a notification.
+    pub fn maybe_run_checker(&self) {
+        let Some(settings) = app_settings() else {
+            return;
+        };
+        if settings.string("data-provider") != "dynon" {
+            // Every other provider's site isn't something this app knows
+            // how to parse — Preferences already says so plainly.
+            return;
+        }
+        let interval = settings.string("check-interval");
+        let interval_secs: i64 = match interval.as_str() {
+            "weekly" => 7 * 24 * 3600,
+            "daily" => 24 * 3600,
+            _ => return, // "manual", or an unrecognised value: never guess a schedule
+        };
+        let last = settings.int64("last-check-time");
+        let now = glib::DateTime::now_utc().map(|d| d.to_unix()).unwrap_or(0);
+        if last != 0 && now.saturating_sub(last) < interval_secs {
+            return;
+        }
+
+        let monitor = gio::NetworkMonitor::default();
+        if !monitor.is_network_available() || monitor.is_network_metered() {
+            glib::g_debug!(
+                "dynon-usb-updater",
+                "checker skipped: offline or on a metered connection"
+            );
+            return;
+        }
+
+        glib::spawn_future_local(glib::clone!(
+            #[weak(rename_to = app)]
+            self,
+            async move { app.run_checker_once().await }
+        ));
+    }
+
+    /// The actual check: one conditional GET of the provider page for the
+    /// current `system-type`, and — only when a genuinely new current cycle
+    /// is found — one more GET to download it. Downloading only: nothing
+    /// here ever touches a drive.
+    async fn run_checker_once(&self) {
+        let Some(settings) = app_settings() else {
+            return;
+        };
+        let system_type = settings.string("system-type");
+        let url = crate::checker::page_url(&system_type);
+        let cache_validator = settings.string("checker-etag");
+        let cache_validator = (!cache_validator.is_empty()).then(|| cache_validator.to_string());
+
+        let session = soup::Session::new();
+        let fetch = crate::checker::fetch_page(&session, url, cache_validator.as_deref()).await;
+
+        let now = glib::DateTime::now_utc().map(|d| d.to_unix()).unwrap_or(0);
+        let _ = settings.set_int64("last-check-time", now);
+
+        let page = match fetch {
+            Ok(page) => page,
+            Err(err) => {
+                glib::g_debug!("dynon-usb-updater", "checker page fetch failed: {err}");
+                return;
+            }
+        };
+        if let Some(etag) = &page.etag {
+            let _ = settings.set_string("checker-etag", etag);
+        }
+        let Some(body) = page.body else {
+            return; // 304 Not Modified: nothing changed since last time
+        };
+
+        let listings = crate::checker::parse_dynon_page(&body);
+        let today = glib::DateTime::now_local()
+            .map(|d| crate::checker::SimpleDate {
+                year: d.year(),
+                month: d.month() as u8,
+                day: d.day_of_month() as u8,
+            })
+            .unwrap_or(crate::checker::SimpleDate {
+                year: 1970,
+                month: 1,
+                day: 1,
+            });
+
+        let Some(crate::checker::Selection::Current(listing)) =
+            crate::checker::select(&listings, today)
+        else {
+            // Nothing covers today (or only an upcoming one does): surfaced
+            // in the UI, never downloaded automatically.
+            return;
+        };
+
+        let aviation_label = listing
+            .aviation_cycle
+            .map(|c| c.label())
+            .unwrap_or_default();
+        let obstacle_label = listing
+            .obstacle_cycle
+            .map(|c| c.label())
+            .unwrap_or_default();
+        let already_seen = settings.string("last-seen-aviation-cycle") == aviation_label
+            && settings.string("last-seen-obstacle-cycle") == obstacle_label
+            && !aviation_label.is_empty();
+        if already_seen {
+            return;
+        }
+
+        let Some(full_url) = crate::checker::resolve_url(url, &listing.href) else {
+            return;
+        };
+        let dest_dir = {
+            let folder = settings.string("download-folder");
+            if folder.is_empty() {
+                glib::user_special_dir(glib::UserDirectory::Downloads)
+                    .unwrap_or_else(glib::home_dir)
+            } else {
+                std::path::PathBuf::from(folder.as_str())
+            }
+        };
+
+        self.notify(
+            "new-cycle",
+            "New AIRAC Cycle Available",
+            &format!("Aviation {aviation_label} · Obstacles {obstacle_label} is downloading."),
+        );
+
+        match crate::checker::download_package(&session, &full_url, &dest_dir).await {
+            Ok(path) => {
+                let _ = settings.set_string("last-seen-aviation-cycle", &aviation_label);
+                let _ = settings.set_string("last-seen-obstacle-cycle", &obstacle_label);
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                self.notify(
+                    "download-complete",
+                    "Download Complete",
+                    &format!(
+                        "{name} was saved to your downloads. Install it from the app when ready."
+                    ),
+                );
+            }
+            Err(err) => {
+                glib::g_debug!("dynon-usb-updater", "checker download failed: {err}");
+            }
+        }
     }
 }
 

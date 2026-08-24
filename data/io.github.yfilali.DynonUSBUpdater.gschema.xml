@@ -111,5 +111,24 @@
       <default>'daily'</default>
       <summary>How often to check for a new cycle</summary>
     </key>
+    <key name="last-check-time" type="x">
+      <default>0</default>
+      <summary>Last automatic check, Unix seconds</summary>
+      <description>When the periodic checker last actually ran, so the schedule survives a restart. 0 means never.</description>
+    </key>
+    <key name="last-seen-aviation-cycle" type="s">
+      <default>''</default>
+      <summary>Aviation cycle last seen by the checker</summary>
+      <description>The aviation cycle label (e.g. "2608") of the last package the checker downloaded or already had, so a repeat check does not re-download the same cycle.</description>
+    </key>
+    <key name="last-seen-obstacle-cycle" type="s">
+      <default>''</default>
+      <summary>Obstacle cycle last seen by the checker</summary>
+    </key>
+    <key name="checker-etag" type="s">
+      <default>''</default>
+      <summary>Conditional request cache validator</summary>
+      <description>The ETag (or, failing that, Last-Modified) of the provider page from the last check, sent back as If-None-Match/If-Modified-Since so an unchanged page costs the provider almost nothing.</description>
+    </key>
   </schema>
 </schemalist>

@@ -60,9 +60,13 @@ common Flathub rejection.
    > at `/run/media/$USER`. No XDG portal exposes removable-drive enumeration or
    > write access, so `--filesystem=/run/media` is required. A file-chooser-portal
    > fallback is offered in-app for users who prefer to grant one directory at a time.
+   > `xdg-download` is read-write, not read-only, because the optional periodic
+   > checker downloads a new cycle straight into it; `--share=network` is what that
+   > checker needs to reach Dynon's own site. It only ever downloads — nothing is
+   > installed to a drive without the user pressing Update.
    Permissions requested, and nothing more:
-   `--share=ipc --socket=wayland --socket=fallback-x11 --device=dri`
-   `--filesystem=/run/media --filesystem=xdg-download:ro`
+   `--share=ipc --share=network --socket=wayland --socket=fallback-x11 --device=dri`
+   `--filesystem=/run/media --filesystem=xdg-download`
    Once merged, Flathub creates `flathub/io.github.yfilali.DynonUSBUpdater`; updates
    are PRs there, and the build bot rebuilds on manifest changes.
 2. **AUR** — `dynon-usb-updater` PKGBUILD (and `-git`) for Arch/Manjaro, which is what

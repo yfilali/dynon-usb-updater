@@ -10,14 +10,21 @@ command: dynon-usb-updater
 # removable drives at /run/media/$USER, which no XDG portal can enumerate or
 # write to, so --filesystem=/run/media is required; the file-chooser-portal
 # fallback (Choose Folder…) covers users who would rather grant one
-# directory at a time. Nothing broader is requested.
+# directory at a time. --filesystem=xdg-download is read-write (not :ro)
+# because the periodic checker downloads a new cycle straight into it by
+# default; --share=network is what that same checker needs to reach Dynon's
+# own site. Nothing broader is requested — it still never installs anything
+# to a drive automatically, and the Background portal request
+# (org.freedesktop.portal.Background, contacted over the always-available
+# portal bus) needs no separate finish-arg of its own.
 finish-args:
   - --share=ipc
+  - --share=network
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
   - --filesystem=/run/media
-  - --filesystem=xdg-download:ro
+  - --filesystem=xdg-download
 
 modules:
   - name: dynon-usb-updater

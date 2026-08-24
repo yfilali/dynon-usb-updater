@@ -365,6 +365,15 @@
                                         <property name="halign">center</property>
                                       </object>
                                     </child>
+                                    <child>
+                                      <object class="AdwPreferencesGroup">
+                                        <child>
+                                          <object class="AdwExpanderRow" id="result_details_row">
+                                            <property name="title" translatable="yes">Details</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
                                   </object>
                                 </property>
                               </object>

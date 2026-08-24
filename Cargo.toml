@@ -22,6 +22,8 @@ sha2 = "0.10"
 regex = "1"
 anyhow = "1"
 crc32fast = "1.5.1"
+ashpd = { version = "0.12.3", default-features = false, features = ["glib", "async-std"] }
+soup3 = { version = "0.8.0", default-features = false }
 
 [profile.release]
 lto = true

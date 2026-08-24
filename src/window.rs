@@ -968,6 +968,13 @@ fn main_menu() -> gio::Menu {
     general.append(Some("Keyboard Shortcuts"), Some("win.show-help-overlay"));
     general.append(Some("About Dynon USB Updater"), Some("win.about"));
     menu.append_section(None, &general);
+    // Closing the window alone no longer necessarily ends the process — it
+    // keeps checking for updates in the background when a check interval is
+    // set — so the one deliberate way out needs to be reachable from the
+    // menu, not just the Ctrl+Q accelerator.
+    let quit = gio::Menu::new();
+    quit.append(Some("Quit"), Some("app.quit"));
+    menu.append_section(None, &quit);
     menu
 }
 
@@ -2517,6 +2524,13 @@ impl DynonWindow {
 
     /// `WindowImpl::close_request` calls this. Blocks the close during the
     /// dangerous window (R3–R5) exactly like the Cancel button does.
+    /// Whether an update is currently running — the `quit` action consults
+    /// this to decide whether it can terminate the process immediately or
+    /// must go through the same guard as closing the window.
+    pub fn has_active_run(&self) -> bool {
+        self.imp().run.borrow().is_some()
+    }
+
     pub(super) fn guarded_close(&self) -> glib::Propagation {
         let imp = self.imp();
         let past = imp

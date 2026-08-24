@@ -113,6 +113,8 @@ source-folder='$FIX/downloads'
 plates-archive='$FIX/downloads/US-Plates-2608.zip'
 window-width=820
 window-height=1150
+system-type='certified'
+data-provider='airmate'
 KEOF
 mkdir -p "$WORK/xdg-data"
 

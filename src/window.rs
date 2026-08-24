@@ -17,6 +17,32 @@ const APP_ID: &str = "io.github.yfilali.DynonUSBUpdater";
 /// Deliberately pessimistic: under-promising beats over-promising.
 const ESTIMATED_BYTES_PER_SECOND: f64 = 12.0 * 1024.0 * 1024.0;
 
+/// `(GSettings nick, display label)`, in the order offered in the setup
+/// dialog and Preferences. Never inferred from anything on the machine —
+/// the whole point is that the user states it explicitly.
+const SYSTEM_TYPES: [(&str, &str); 2] = [
+    ("experimental", "Experimental / LSA"),
+    ("certified", "Certified"),
+];
+const PROVIDERS: [(&str, &str); 4] = [
+    ("dynon", "Dynon"),
+    ("airmate", "Airmate"),
+    ("seattle-avionics", "Seattle Avionics"),
+    ("other", "Other"),
+];
+
+/// The provider's own site, for the "automatic download isn't available"
+/// notice. `None` for a provider this app has no specific link for.
+fn provider_site(provider: &str, system_type: &str) -> Option<&'static str> {
+    match provider {
+        "dynon" if system_type == "certified" => Some("https://www.dynoncertified.com"),
+        "dynon" => Some("https://dynonavionics.com"),
+        "airmate" => Some("https://www.airmate.aero"),
+        "seattle-avionics" => Some("https://www.seattleavionics.com"),
+        _ => None,
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct Sources {
     folder: Option<PathBuf>,
@@ -352,6 +378,7 @@ impl DynonWindow {
         }
         self.refresh_drives();
         self.maybe_start_demo();
+        self.maybe_show_aircraft_setup();
     }
 
     /// Screenshot/demo hook only — never active in a normal launch. Setting
@@ -3355,9 +3382,246 @@ impl DynonWindow {
 // ---------------------------------------------------------------------------
 
 impl DynonWindow {
+    /// On first run — either `system-type` or `data-provider` still `unset`
+    /// — asks both before anything else, because they decide which database
+    /// reaches the aircraft and must never be guessed.
+    fn maybe_show_aircraft_setup(&self) {
+        let system_type = self
+            .settings_string("system-type")
+            .unwrap_or_else(|| "unset".into());
+        let provider = self
+            .settings_string("data-provider")
+            .unwrap_or_else(|| "unset".into());
+        if system_type != "unset" && provider != "unset" {
+            return;
+        }
+        self.show_aircraft_setup_dialog(true);
+    }
+
+    /// The setup dialog, shared between the mandatory first-run gate and the
+    /// "Aircraft" group in Preferences. On first run the dialog cannot be
+    /// dismissed without an explicit answer to both questions; from
+    /// Preferences it is an ordinary editable dialog with a Cancel.
+    fn show_aircraft_setup_dialog(&self, first_run: bool) {
+        let current_system = self
+            .settings_string("system-type")
+            .unwrap_or_else(|| "unset".into());
+        let current_provider = self
+            .settings_string("data-provider")
+            .unwrap_or_else(|| "unset".into());
+
+        let heading = if first_run {
+            "Set Up Your Aircraft"
+        } else {
+            "Change Aircraft Setup"
+        };
+        let body = "These answers decide which database reaches the aircraft. Certified means \
+                     an STC'd install in a type-certificated aircraft; Experimental/LSA covers \
+                     everything else. The provider decides which files this app recognises, and \
+                     only Dynon supports checking for updates automatically.";
+
+        let group = adw::PreferencesGroup::new();
+
+        let system_list =
+            gtk::StringList::new(&SYSTEM_TYPES.iter().map(|(_, l)| *l).collect::<Vec<_>>());
+        let system_row = adw::ComboRow::builder()
+            .title("Aircraft Certification")
+            .subtitle("Certified (STC'd), or Experimental/LSA")
+            .model(&system_list)
+            .build();
+        let system_index = SYSTEM_TYPES.iter().position(|(n, _)| *n == current_system);
+        system_row.set_selected(system_index.map(|i| i as u32).unwrap_or(u32::MAX));
+        group.add(&system_row);
+
+        let provider_list =
+            gtk::StringList::new(&PROVIDERS.iter().map(|(_, l)| *l).collect::<Vec<_>>());
+        let provider_row = adw::ComboRow::builder()
+            .title("Database Provider")
+            .subtitle("Only Dynon supports automatic download checks")
+            .model(&provider_list)
+            .build();
+        let provider_index = PROVIDERS.iter().position(|(n, _)| *n == current_provider);
+        provider_row.set_selected(provider_index.map(|i| i as u32).unwrap_or(u32::MAX));
+        group.add(&provider_row);
+
+        let dialog = adw::AlertDialog::builder()
+            .heading(heading)
+            .body(body)
+            .extra_child(&group)
+            .default_response("save")
+            .close_response(if first_run { "save" } else { "cancel" })
+            .build();
+        if !first_run {
+            dialog.add_response("cancel", "Cancel");
+        }
+        dialog.add_response("save", if first_run { "Continue" } else { "Save" });
+        dialog.set_response_appearance("save", adw::ResponseAppearance::Suggested);
+        let both_set = system_index.is_some() && provider_index.is_some();
+        dialog.set_response_enabled("save", both_set);
+
+        system_row.connect_selected_notify(clone!(
+            #[weak]
+            dialog,
+            #[weak]
+            provider_row,
+            move |system_row| {
+                dialog.set_response_enabled(
+                    "save",
+                    system_row.selected() != u32::MAX && provider_row.selected() != u32::MAX,
+                );
+            }
+        ));
+        provider_row.connect_selected_notify(clone!(
+            #[weak]
+            dialog,
+            #[weak]
+            system_row,
+            move |provider_row| {
+                dialog.set_response_enabled(
+                    "save",
+                    system_row.selected() != u32::MAX && provider_row.selected() != u32::MAX,
+                );
+            }
+        ));
+
+        dialog.connect_response(
+            None,
+            clone!(
+                #[weak(rename_to = win)]
+                self,
+                #[weak]
+                system_row,
+                #[weak]
+                provider_row,
+                move |_, response| {
+                    if response != "save" {
+                        return;
+                    }
+                    if let Some((nick, _)) = SYSTEM_TYPES.get(system_row.selected() as usize) {
+                        win.save("system-type", *nick);
+                    }
+                    if let Some((nick, _)) = PROVIDERS.get(provider_row.selected() as usize) {
+                        win.save("data-provider", *nick);
+                    }
+                }
+            ),
+        );
+        dialog.present(Some(self));
+    }
+
     fn show_preferences(&self) {
         let dialog = adw::PreferencesDialog::new();
         let page = adw::PreferencesPage::new();
+
+        let aircraft = adw::PreferencesGroup::builder()
+            .title("Aircraft")
+            .description("Decides which files this app recognises as yours.")
+            .build();
+
+        let aircraft_row = adw::ActionRow::builder()
+            .title("Certification and Provider")
+            .build();
+        let change_aircraft = gtk::Button::builder()
+            .label("Change…")
+            .valign(gtk::Align::Center)
+            .css_classes(["flat"])
+            .build();
+        change_aircraft.connect_clicked(clone!(
+            #[weak(rename_to = win)]
+            self,
+            move |_| win.show_aircraft_setup_dialog(false)
+        ));
+        aircraft_row.add_suffix(&change_aircraft);
+        aircraft_row.set_activatable_widget(Some(&change_aircraft));
+        aircraft.add(&aircraft_row);
+
+        let notice_row = adw::ActionRow::builder()
+            .title("Automatic Download")
+            .visible(false)
+            .build();
+        aircraft.add(&notice_row);
+
+        // Both rows reflect current settings and stay live if changed while
+        // this dialog is open (the setup dialog can be reached from here).
+        // Tracks the one link button the notice row may hold, so a repeat
+        // update replaces it instead of stacking duplicates.
+        let notice_link: std::rc::Rc<std::cell::RefCell<Option<gtk::LinkButton>>> =
+            Default::default();
+        let update_aircraft_rows: std::rc::Rc<dyn Fn()> = std::rc::Rc::new(clone!(
+            #[weak(rename_to = win)]
+            self,
+            #[weak]
+            aircraft_row,
+            #[weak]
+            notice_row,
+            #[strong]
+            notice_link,
+            move || {
+                let system = win
+                    .settings_string("system-type")
+                    .unwrap_or_else(|| "unset".into());
+                let provider = win
+                    .settings_string("data-provider")
+                    .unwrap_or_else(|| "unset".into());
+                let system_label = SYSTEM_TYPES
+                    .iter()
+                    .find(|(n, _)| *n == system)
+                    .map(|(_, l)| *l)
+                    .unwrap_or("Not set");
+                let provider_label = PROVIDERS
+                    .iter()
+                    .find(|(n, _)| *n == provider)
+                    .map(|(_, l)| *l)
+                    .unwrap_or("Not set");
+                aircraft_row.set_subtitle(&format!("{system_label} · {provider_label}"));
+
+                if let Some(old) = notice_link.borrow_mut().take() {
+                    notice_row.remove(&old);
+                }
+                if provider != "unset" && provider != "dynon" {
+                    notice_row.set_visible(true);
+                    notice_row.set_subtitle(&format!(
+                        "Automatic download isn't available for {provider_label}"
+                    ));
+                    if let Some(url) = provider_site(&provider, &system) {
+                        let link = gtk::LinkButton::builder()
+                            .label("Visit Website")
+                            .uri(url)
+                            .valign(gtk::Align::Center)
+                            .css_classes(["flat"])
+                            .build();
+                        notice_row.add_suffix(&link);
+                        *notice_link.borrow_mut() = Some(link);
+                    }
+                } else {
+                    notice_row.set_visible(false);
+                }
+            }
+        ));
+        (update_aircraft_rows)();
+        let settings_handler = self.imp().settings.borrow().as_ref().map(|settings| {
+            settings.connect_changed(
+                None,
+                clone!(
+                    #[strong]
+                    update_aircraft_rows,
+                    move |_, key| {
+                        if key == "system-type" || key == "data-provider" {
+                            (update_aircraft_rows)();
+                        }
+                    }
+                ),
+            )
+        });
+        if let Some(settings) = self.imp().settings.borrow().clone() {
+            let handler_cell = std::cell::RefCell::new(settings_handler);
+            dialog.connect_closed(move |_| {
+                if let Some(handler) = handler_cell.borrow_mut().take() {
+                    settings.disconnect(handler);
+                }
+            });
+        }
+        page.add(&aircraft);
 
         let updating = adw::PreferencesGroup::builder().title("Updating").build();
         let verify = adw::SwitchRow::builder()

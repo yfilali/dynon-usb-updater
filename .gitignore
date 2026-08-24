@@ -3,3 +3,4 @@ __pycache__/
 build/
 .flatpak-builder/
 *.pyc
+data/gschemas.compiled

@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
+  <enum id="io.github.yfilali.DynonUSBUpdater.SystemType">
+    <value nick="unset" value="0"/>
+    <value nick="experimental" value="1"/>
+    <value nick="certified" value="2"/>
+  </enum>
+  <enum id="io.github.yfilali.DynonUSBUpdater.DataProvider">
+    <value nick="unset" value="0"/>
+    <value nick="dynon" value="1"/>
+    <value nick="airmate" value="2"/>
+    <value nick="seattle-avionics" value="3"/>
+    <value nick="other" value="4"/>
+  </enum>
+  <enum id="io.github.yfilali.DynonUSBUpdater.CheckInterval">
+    <value nick="manual" value="0"/>
+    <value nick="daily" value="1"/>
+    <value nick="weekly" value="2"/>
+  </enum>
   <schema id="io.github.yfilali.DynonUSBUpdater" path="/io/github/yfilali/DynonUSBUpdater/">
     <key name="source-folder" type="s">
       <default>''</default>
@@ -61,6 +78,38 @@
       <default>false</default>
       <summary>First-run banner shown</summary>
       <description>Whether the one-time first-run banner has already been shown.</description>
+    </key>
+    <key name="system-type" enum="io.github.yfilali.DynonUSBUpdater.SystemType">
+      <default>'unset'</default>
+      <summary>Aircraft certification basis</summary>
+      <description>
+        Whether the aircraft this app is preparing databases for is a
+        certificated (STC'd) install or an experimental/LSA one. Never
+        inferred — asked once on first run, changeable in Preferences.
+      </description>
+    </key>
+    <key name="data-provider" enum="io.github.yfilali.DynonUSBUpdater.DataProvider">
+      <default>'unset'</default>
+      <summary>Chart and database provider</summary>
+      <description>
+        Which vendor's database and plates files this app should recognise.
+        Never inferred — asked once on first run, changeable in Preferences.
+        Only Dynon enables the automatic download checker.
+      </description>
+    </key>
+    <key name="download-folder" type="s">
+      <default>''</default>
+      <summary>Automatic download folder</summary>
+      <description>Where checked-for updates are downloaded. Empty means the XDG Downloads folder.</description>
+    </key>
+    <key name="autostart" type="b">
+      <default>true</default>
+      <summary>Start in the background at login</summary>
+      <description>Register with the XDG Background portal to launch at login and keep checking for updates.</description>
+    </key>
+    <key name="check-interval" enum="io.github.yfilali.DynonUSBUpdater.CheckInterval">
+      <default>'daily'</default>
+      <summary>How often to check for a new cycle</summary>
     </key>
   </schema>
 </schemalist>

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Dynon USB Updater
+Comment=Prepare USB drives for your avionics
+Exec=dynon-usb-updater
+Icon=io.github.yfilali.DynonUSBUpdater
+Terminal=false
+Categories=Utility;
+Keywords=Dynon;SkyView;AIRAC;avionics;aviation;charts;plates;obstacle;database;USB;EFIS;
+StartupNotify=true

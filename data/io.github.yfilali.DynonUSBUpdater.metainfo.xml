@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.yfilali.DynonUSBUpdater</id>
+  <name>Dynon USB Updater</name>
+  <summary>Prepare USB drives for your avionics</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.yfilali">
+    <name>Yacine Filali</name>
+  </developer>
+
+  <description>
+    <p>
+      Dynon USB Updater copies each AIRAC cycle's aviation and obstacle databases and
+      the matching approach plates onto the USB drives you carry to the aircraft.
+    </p>
+    <p>
+      Point it at the folder you downloaded this cycle into. It identifies the newest
+      aviation and obstacle database by cycle number, reads the plates archive, and
+      shows you every connected drive with the cycle already installed on it, its free
+      space, and whether this update will fit. Drives that already look like SkyView
+      drives are offered first; anything else is left alone unless you deliberately
+      choose it.
+    </p>
+    <p>
+      Before writing, it tells you exactly what will be erased and what it will be
+      replaced with. While it runs — usually about twenty minutes for a full plates
+      archive — it shows the current step, the file count, and the time remaining for
+      every drive, and it keeps your session awake so a suspend cannot corrupt a drive
+      halfway through. Copies are checked by SHA-256 read-back, and every run is
+      written to a log you can save.
+    </p>
+    <p>
+      Not affiliated with, endorsed by, or supported by Dynon Avionics. Always confirm
+      your data is current and correct before flight.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.yfilali.DynonUSBUpdater.desktop</launchable>
+
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>Dynon</keyword>
+    <keyword>SkyView</keyword>
+    <keyword>AIRAC</keyword>
+    <keyword>avionics</keyword>
+    <keyword>aviation</keyword>
+    <keyword>charts</keyword>
+    <keyword>plates</keyword>
+    <keyword>obstacle</keyword>
+    <keyword>database</keyword>
+    <keyword>USB</keyword>
+    <keyword>EFIS</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1"/>
+
+  <url type="homepage">https://github.com/yfilali/dynon-usb-updater</url>
+  <url type="bugtracker">https://github.com/yfilali/dynon-usb-updater/issues</url>
+  <url type="vcs-browser">https://github.com/yfilali/dynon-usb-updater</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#1c71d8</color>
+    <color type="primary" scheme_preference="dark">#1a5fb4</color>
+  </branding>
+
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </recommends>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Ready to update — recognised drives are pre-selected automatically</caption>
+      <image>https://raw.githubusercontent.com/yfilali/dynon-usb-updater/main/screenshots/ready.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Progress, file counts, and time remaining for every drive while it runs</caption>
+      <image>https://raw.githubusercontent.com/yfilali/dynon-usb-updater/main/screenshots/running.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Every drive updated, with the option to eject before unplugging</caption>
+      <image>https://raw.githubusercontent.com/yfilali/dynon-usb-updater/main/screenshots/result.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A plain-language reason when a drive is not recognised as a SkyView drive</caption>
+      <image>https://raw.githubusercontent.com/yfilali/dynon-usb-updater/main/screenshots/drives-empty.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="1.0.0" date="2026-08-23">
+      <description>
+        <p>First release: cycle-aware database and plates updates, per-drive safety
+        checks, live progress, and a saved activity log for every run.</p>
+      </description>
+    </release>
+  </releases>
+</component>
